@@ -15,19 +15,6 @@ local function HandleRoleAnchor(self, role)
 	self[role.."Count"]:SetPoint("RIGHT", self[role.."Icon"], "LEFT", 1, 0)
 end
 
-local atlasToRole = {
-	["groupfinder-icon-role-large-tank"] = "TANK",
-	["groupfinder-icon-role-large-heal"] = "HEALER",
-	["groupfinder-icon-role-large-dps"] = "DAMAGER",
-}
-local function ReplaceApplicantRoles(texture, atlas)
-	local role = atlasToRole[atlas]
-	if role then
-		texture:SetTexture(DB.rolesTex)
-		texture:SetTexCoord(B.GetRoleTexCoord(role))
-	end
-end
-
 tinsert(C.defaultThemes, function()
 	local r, g, b = DB.r, DB.g, DB.b
 
@@ -78,9 +65,14 @@ tinsert(C.defaultThemes, function()
 	B.Reskin(searchPanel.BackButton)
 	B.Reskin(searchPanel.BackToGroupButton)
 	B.Reskin(searchPanel.SignUpButton)
-	B.Reskin(searchPanel.ScrollBox.StartGroupButton)
-	B.ReskinTrimScroll(searchPanel.ScrollBar)
 	B.ReskinInput(searchPanel.SearchBox)
+	searchPanel.SearchBox:SetHeight(22)
+	B.ReskinFilterButton(searchPanel.FilterButton)
+	B.ReskinFilterReset(searchPanel.FilterButton.ResetButton)
+
+	searchPanel:HookScript("OnShow", function(self)
+		self.FilterButton:SetSize(90, 21) -- needs review, fix blizzard weired size
+	end)
 
 	searchPanel.RefreshButton:SetSize(24, 24)
 	searchPanel.RefreshButton.Icon:SetPoint("CENTER")
@@ -119,6 +111,24 @@ tinsert(C.defaultThemes, function()
 
 			numResults = numResults + 1
 		end
+	end)
+
+	local function skinCreateButton(button)
+		local child = button:GetChildren()
+		if not child.styled and child:IsObjectType("Button") then
+			B.Reskin(child)
+			child.styled = true
+		end
+	end
+
+	local delayStyled -- otherwise it taints while listing
+	hooksecurefunc(searchPanel.ScrollBox, "Update", function(self)
+		if not delayStyled then
+			B.Reskin(self.StartGroupButton)
+			B.ReskinTrimScroll(searchPanel.ScrollBar)
+			delayStyled = true
+		end
+		self:ForEachFrame(skinCreateButton)
 	end)
 
 	-- [[ Application viewer ]]
@@ -173,20 +183,6 @@ tinsert(C.defaultThemes, function()
 		end
 	end)
 
-	hooksecurefunc("LFGListApplicationViewer_UpdateRoleIcons", function(member)
-		if not member.styled then
-			for i = 1, 3 do
-				local button = member["RoleIcon"..i]
-				local texture = button:GetNormalTexture()
-				ReplaceApplicantRoles(texture, LFG_LIST_GROUP_DATA_ATLASES[button.role])
-				hooksecurefunc(texture, "SetAtlas", ReplaceApplicantRoles)
-				B.CreateBDFrame(button)
-			end
-
-			member.styled = true
-		end
-	end)
-
 	-- [[ Entry creation ]]
 
 	local entryCreation = LFGListFrame.EntryCreation
@@ -198,8 +194,8 @@ tinsert(C.defaultThemes, function()
 	B.ReskinInput(entryCreation.Name)
 	B.ReskinInput(entryCreation.ItemLevel.EditBox)
 	B.ReskinInput(entryCreation.VoiceChat.EditBox)
-	B.ReskinDropDown(entryCreation.GroupDropDown)
-	B.ReskinDropDown(entryCreation.ActivityDropDown)
+	B.ReskinDropDown(entryCreation.GroupDropdown)
+	B.ReskinDropDown(entryCreation.ActivityDropdown)
 	B.ReskinDropDown(entryCreation.PlayStyleDropdown)
 	B.ReskinCheck(entryCreation.MythicPlusRating.CheckButton)
 	B.ReskinInput(entryCreation.MythicPlusRating.EditBox)
@@ -221,6 +217,9 @@ tinsert(C.defaultThemes, function()
 			B.ReskinSmallRole(self.TankIcon, "TANK")
 			B.ReskinSmallRole(self.HealerIcon, "HEALER")
 			B.ReskinSmallRole(self.DamagerIcon, "DPS")
+			-- fix for PGFinder
+			self.DamagerIcon:ClearAllPoints()
+			self.DamagerIcon:SetPoint("RIGHT", -11, 0)
 
 			self.HealerIcon:SetPoint("RIGHT", self.DamagerIcon, "LEFT", -22, 0)
 			self.TankIcon:SetPoint("RIGHT", self.HealerIcon, "LEFT", -22, 0)
@@ -274,13 +273,4 @@ tinsert(C.defaultThemes, function()
 	B.Reskin(LFGListInviteDialog.AcceptButton)
 	B.Reskin(LFGListInviteDialog.DeclineButton)
 	B.Reskin(LFGListInviteDialog.AcknowledgeButton)
-
-	local roleIcon = LFGListInviteDialog.RoleIcon
-	roleIcon:SetTexture(DB.rolesTex)
-	B.CreateBDFrame(roleIcon)
-
-	hooksecurefunc("LFGListInviteDialog_Show", function(self, resultID)
-		local role = select(5, C_LFGList.GetApplicationInfo(resultID))
-		self.RoleIcon:SetTexCoord(B.GetRoleTexCoord(role))
-	end)
 end)

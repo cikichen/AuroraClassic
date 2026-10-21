@@ -4,23 +4,26 @@ local B, C, L, DB = unpack(ns)
 -- Default settings
 C.options = {
 	Alpha = .5,
+	AlertFrames = true,
 	Bags = true,
 	FlatMode = false,
 	ChatBubbles = true,
 	FontOutline = true,
 	FontScale = 1,
 	Loot = true,
+	PetBattle = true,
 	Tooltips = true,
 	Shadow = true,
 	ObjectiveTracker = true,
 	UIScale = 0,
+	CooldownMgr = true,
+	DamageMeter = true,
 }
 
 C.defaultThemes = {}
 C.themes = {}
 
 -- Data
-DB.isNewPatch = select(4, GetBuildInfo()) >= 90205 -- 9.2.5
 DB.MyClass = select(2, UnitClass("player"))
 DB.ClassColors = {}
 
@@ -55,10 +58,6 @@ DB.bgTex = mediaPath.."bgTex"
 DB.pushedTex = mediaPath.."pushed"
 DB.ArrowUp = mediaPath.."arrow"
 DB.closeTex = mediaPath.."close"
-DB.rolesTex = mediaPath.."RoleIcons"
-DB.tankTex = mediaPath.."Tank"
-DB.healTex = mediaPath.."Healer"
-DB.dpsTex = mediaPath.."DPS"
 DB.sparkTex = "Interface\\CastingBar\\UI-CastingBar-Spark"
 DB.TexCoord = {.08, .92, .08, .92}
 DB.Font = {STANDARD_TEXT_FONT, 12, "OUTLINE"}

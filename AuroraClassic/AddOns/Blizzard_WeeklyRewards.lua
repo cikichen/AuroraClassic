@@ -1,6 +1,5 @@
 local _, ns = ...
 local B, C, L, DB = unpack(ns)
-local r, g, b = DB.r, DB.g, DB.b
 
 -- /run UIParent_OnEvent({}, "WEEKLY_REWARDS_SHOW")
 
@@ -33,9 +32,6 @@ end
 local function ReskinActivityFrame(frame, isObject)
 	if frame.Border then
 		if isObject then
-			frame.Border:SetAlpha(0)
-			frame.SelectedTexture:SetAlpha(0)
-			frame.LockIcon:SetVertexColor(r, g, b)
 			hooksecurefunc(frame, "SetSelectionState", updateSelection)
 			hooksecurefunc(frame.ItemFrame, "SetDisplayedItem", reskinRewardIcon)
 
@@ -49,10 +45,6 @@ local function ReskinActivityFrame(frame, isObject)
 			frame.Border:SetPoint("LEFT", frame, "RIGHT", 3, 0)
 		end
 	end
-
-	if frame.Background then
-		frame.bg = B.CreateBDFrame(frame.Background, 1)
-	end
 end
 
 local function replaceIconString(self, text)
@@ -61,6 +53,15 @@ local function replaceIconString(self, text)
 
 	local newText, count = gsub(text, "24:24:0:%-2", "14:14:0:0:64:64:5:59:5:59")
 	if count > 0 then self:SetFormattedText("%s", newText) end
+end
+
+local function reskinConcessionRewardText(frame)
+	local rewardText = frame.RewardsFrame.Text
+	if rewardText.__auroraWeeklyRewardsIconHooked then return end
+
+	replaceIconString(rewardText)
+	hooksecurefunc(rewardText, "SetText", replaceIconString)
+	rewardText.__auroraWeeklyRewardsIconHooked = true
 end
 
 local function reskinConfirmIcon(frame)
@@ -72,21 +73,18 @@ end
 C.themes["Blizzard_WeeklyRewards"] = function()
 	local WeeklyRewardsFrame = WeeklyRewardsFrame
 
-	B.StripTextures(WeeklyRewardsFrame)
-	B.SetBD(WeeklyRewardsFrame)
+	local bg = B.SetBD(WeeklyRewardsFrame)
 	B.ReskinClose(WeeklyRewardsFrame.CloseButton)
 	B.StripTextures(WeeklyRewardsFrame.SelectRewardButton)
 	B.Reskin(WeeklyRewardsFrame.SelectRewardButton)
 
-	local headerFrame = WeeklyRewardsFrame.HeaderFrame
-	B.StripTextures(headerFrame)
-	B.CreateBDFrame(headerFrame, .25)
-	headerFrame:SetPoint("TOP", 1, -42)
-	headerFrame.Text:SetFontObject(SystemFont_Huge1)
+	WeeklyRewardsFrame.BorderShadow:SetInside(bg)
+	WeeklyRewardsFrame.BorderContainer:SetAlpha(0)
 
 	ReskinActivityFrame(WeeklyRewardsFrame.RaidFrame)
 	ReskinActivityFrame(WeeklyRewardsFrame.MythicFrame)
 	ReskinActivityFrame(WeeklyRewardsFrame.PVPFrame)
+	ReskinActivityFrame(WeeklyRewardsFrame.WorldFrame)
 
 	for _, frame in pairs(WeeklyRewardsFrame.Activities) do
 		ReskinActivityFrame(frame, true)
@@ -96,8 +94,9 @@ C.themes["Blizzard_WeeklyRewards"] = function()
 		local confirmFrame = self.confirmSelectionFrame
 		if confirmFrame then
 			if not confirmFrame.styled then
-				reskinConfirmIcon(confirmFrame.ItemFrame)
-				WeeklyRewardsFrameNameFrame:Hide()
+				local itemFrame = confirmFrame.ItemFrame
+				reskinConfirmIcon(itemFrame)
+				itemFrame.NameFrame:Hide()
 				confirmFrame.styled = true
 			end
 
@@ -110,7 +109,13 @@ C.themes["Blizzard_WeeklyRewards"] = function()
 		end
 	end)
 
-	local rewardText = WeeklyRewardsFrame.ConcessionFrame.RewardsFrame.Text
-	replaceIconString(rewardText)
-	hooksecurefunc(rewardText, "SetText", replaceIconString)
+	for _, concessionFrame in ipairs({WeeklyRewardsFrame.ConcessionsFrame.Rewards:GetChildren()}) do
+		reskinConcessionRewardText(concessionFrame)
+	end
+
+	local dialog = WeeklyRewardExpirationWarningDialog
+	if dialog then
+		B.StripTextures(dialog)
+		B.SetBD(dialog)
+	end
 end

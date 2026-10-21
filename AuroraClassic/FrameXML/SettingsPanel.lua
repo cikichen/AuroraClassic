@@ -24,7 +24,9 @@ tinsert(C.defaultThemes, function()
 	reskinSettingsTab(frame.GameTab)
 	reskinSettingsTab(frame.AddOnsTab)
 
-	B.CreateBDFrame(frame.CategoryList, .25):SetInside()
+	local bg = B.CreateBDFrame(frame.CategoryList, .25)
+	bg:SetInside()
+	bg:SetPoint("TOPLEFT", 1, 6)
 	hooksecurefunc(frame.CategoryList.ScrollBox, "Update", function(self)
 		for i = 1, self.ScrollTarget:GetNumChildren() do
 			local child = select(i, self.ScrollTarget:GetChildren())
@@ -50,38 +52,16 @@ tinsert(C.defaultThemes, function()
 		end
 	end)
 
-	B.CreateBDFrame(frame.Container, .25):SetInside()
+	local bg = B.CreateBDFrame(frame.Container, .25)
+	bg:SetInside()
+	bg:SetPoint("TOPLEFT", 1, 6)
 	B.Reskin(frame.Container.SettingsList.Header.DefaultsButton)
-	B.ReskinTrimScroll(frame.Container.SettingsList.ScrollBar, true)
+	B.ReskinTrimScroll(frame.Container.SettingsList.ScrollBar, true) -- taint while in combat
 
-	local function ReskinDropDownArrow(button, direction)
-		button.NormalTexture:SetAlpha(0)
-		button.PushedTexture:SetAlpha(0)
-		button:GetHighlightTexture():SetAlpha(0)
-
-		local dis = button:GetDisabledTexture()
-		B.SetupArrow(dis, direction)
-		dis:SetVertexColor(0, 0, 0, .7)
-		dis:SetDrawLayer("OVERLAY")
-		dis:SetInside(button, 4, 4)
-
-		local tex = button:CreateTexture(nil, "ARTWORK")
-		tex:SetInside(button, 4, 4)
-		B.SetupArrow(tex, direction)
-		button.__texture = tex
-		button:HookScript("OnEnter", B.Texture_OnEnter)
-		button:HookScript("OnLeave", B.Texture_OnLeave)
-	end
-
-	local function ReskinOptionDropDown(option)
-		local button = option.Button
-		B.Reskin(button)
-		button.__bg:SetInside(button, 6, 6)
-		button.NormalTexture:SetAlpha(0)
-		button.HighlightTexture:SetAlpha(0)
-
-		ReskinDropDownArrow(option.DecrementButton, "left")
-		ReskinDropDownArrow(option.IncrementButton, "right")
+	local function ReskinDropdown(option)
+		B.Reskin(option.Dropdown)
+		B.Reskin(option.DecrementButton)
+		B.Reskin(option.IncrementButton)
 	end
 
 	local function UpdateKeybindButtons(self)
@@ -104,31 +84,45 @@ tinsert(C.defaultThemes, function()
 	end
 
 	local function forceSaturation(self)
-		self.CheckBox:DesaturateHierarchy(1)
+		if self.Checkbox then
+			self.Checkbox:DesaturateHierarchy(1)
+		end
+	end
+
+	local function ReskinControlsGroup(controls)
+		for i = 1, controls:GetNumChildren() do
+			local element = select(i, controls:GetChildren())
+			if element.SliderWithSteppers then
+				B.ReskinStepperSlider(element.SliderWithSteppers)
+			end
+			if element.Control then
+				ReskinDropdown(element.Control)
+			end
+			if element.Checkbox then
+				B.ReskinCheck(element.Checkbox)
+				element.Checkbox.bg:SetInside(nil, 6, 6)
+				hooksecurefunc(element, "DesaturateHierarchy", forceSaturation)
+			end
+		end
 	end
 
 	hooksecurefunc(frame.Container.SettingsList.ScrollBox, "Update", function(self)
 		for i = 1, self.ScrollTarget:GetNumChildren() do
 			local child = select(i, self.ScrollTarget:GetChildren())
 			if not child.styled then
-				if child.CheckBox then
-					B.ReskinCheck(child.CheckBox)
-					child.CheckBox.bg:SetInside(nil, 6, 6)
+				if child.NineSlice then
+					child.NineSlice:SetAlpha(0)
+					local bg = B.CreateBDFrame(child, .25)
+					bg:SetPoint("TOPLEFT", 15, -30)
+					bg:SetPoint("BOTTOMRIGHT", -30, -5)
+				end
+				if child.Checkbox then
+					B.ReskinCheck(child.Checkbox)
+					child.Checkbox.bg:SetInside(nil, 6, 6)
 					hooksecurefunc(child, "DesaturateHierarchy", forceSaturation)
 				end
-				if child.DropDown then
-					ReskinOptionDropDown(child.DropDown)
-				end
-				if child.ColorBlindFilterDropDown then
-					ReskinOptionDropDown(child.ColorBlindFilterDropDown)
-				end
-				for j = 1, 13 do
-					local control = child["Control"..j]
-					if control then
-						if control.DropDown then
-							ReskinOptionDropDown(control.DropDown)
-						end
-					end
+				if child.Control then
+					ReskinDropdown(child.Control)
 				end
 				if child.Button then
 					if child.Button:GetWidth() < 250 then
@@ -147,7 +141,9 @@ tinsert(C.defaultThemes, function()
 						child.__texture = bg:CreateTexture(nil, "OVERLAY")
 						child.__texture:SetPoint("RIGHT", -10, 0)
 						UpdateHeaderExpand(child, false)
-						hooksecurefunc(child, "EvaluateVisibility", UpdateHeaderExpand)
+						if child.EvaluateVisibility then -- some silly addons override this function
+							hooksecurefunc(child, "EvaluateVisibility", UpdateHeaderExpand)
+						end
 					end
 				end
 				if child.ToggleTest then
@@ -167,6 +163,26 @@ tinsert(C.defaultThemes, function()
 				if child.Button1 and child.Button2 then
 					B.Reskin(child.Button1)
 					B.Reskin(child.Button2)
+				end
+				if child.Controls then
+					for i = 1, #child.Controls do
+						local control = child.Controls[i]
+						if control.SliderWithSteppers then
+							B.ReskinStepperSlider(control.SliderWithSteppers)
+						end
+					end
+				end
+				if child.BaseTab then
+					B.StripTextures(child.BaseTab, 0)
+				end
+				if child.RaidTab then
+					B.StripTextures(child.RaidTab, 0)
+				end
+				if child.BaseQualityControls then
+					ReskinControlsGroup(child.BaseQualityControls)
+				end
+				if child.RaidQualityControls then
+					ReskinControlsGroup(child.RaidQualityControls)
 				end
 
 				child.styled = true

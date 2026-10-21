@@ -5,22 +5,7 @@ local Type_StatusBar = _G.Enum.UIWidgetVisualizationType.StatusBar
 local Type_CaptureBar = _G.Enum.UIWidgetVisualizationType.CaptureBar
 local Type_SpellDisplay = _G.Enum.UIWidgetVisualizationType.SpellDisplay
 local Type_DoubleStatusBar = _G.Enum.UIWidgetVisualizationType.DoubleStatusBar
-
-local atlasColors = {
-	["UI-Frame-Bar-Fill-Blue"] = {.2, .6, 1},
-	["UI-Frame-Bar-Fill-Red"] = {.9, .2, .2},
-	["UI-Frame-Bar-Fill-Yellow"] = {1, .6, 0},
-	["objectivewidget-bar-fill-left"] = {.2, .6, 1},
-	["objectivewidget-bar-fill-right"] = {.9, .2, .2},
-	["EmberCourtScenario-Tracker-barfill"] = {.9, .2, .2},
-}
-
-function B:ReplaceWidgetBarTexture(atlas)
-	if atlasColors[atlas] then
-		self:SetStatusBarTexture(DB.normTex)
-		self:SetStatusBarColor(unpack(atlasColors[atlas]))
-	end
-end
+local Type_ItemDisplay = _G.Enum.UIWidgetVisualizationType.ItemDisplay
 
 local function ResetLabelColor(text, _, _, _, _, force)
 	if not force then
@@ -41,16 +26,12 @@ local function ReskinWidgetStatusBar(bar)
 		if bar.SparkGlow then bar.SparkGlow:SetAlpha(0) end
 		if bar.BorderGlow then bar.BorderGlow:SetAlpha(0) end
 		if bar.Label then
-			bar.Label:SetPoint("CENTER", 0, -5)
-			bar.Label:SetFontObject(Game12Font)
+			--bar.Label:SetPoint("CENTER", 0, -5)
+			--bar.Label:SetFontObject(Game12Font)
 			ResetLabelColor(bar.Label)
 			hooksecurefunc(bar.Label, "SetTextColor", ResetLabelColor)
 		end
 		B.SetBD(bar)
-		if bar.GetStatusBarAtlas then
-			B.ReplaceWidgetBarTexture(bar, bar:GetStatusBarAtlas())
-			hooksecurefunc(bar, "SetStatusBarAtlas", B.ReplaceWidgetBarTexture)
-		end
 
 		bar.styled = true
 	end
@@ -98,6 +79,8 @@ local function ReskinSpellDisplayWidget(spell)
 end
 
 local function ReskinPowerBarWidget(self)
+	if not self.widgetFrames then return end
+
 	for _, widgetFrame in pairs(self.widgetFrames) do
 		if widgetFrame.widgetType == Type_StatusBar then
 			if not widgetFrame:IsForbidden() then
@@ -107,7 +90,17 @@ local function ReskinPowerBarWidget(self)
 	end
 end
 
+local function ReskinWidgetItemDisplay(item)
+	if not item.bg then
+		item.bg = B.ReskinIcon(item.Icon)
+		B.ReskinIconBorder(item.IconBorder, true)
+	end
+	item.IconMask:Hide()
+end
+
 local function ReskinWidgetGroups(self)
+	if not self.widgetFrames then return end
+
 	for _, widgetFrame in pairs(self.widgetFrames) do
 		if not widgetFrame:IsForbidden() then
 			local widgetType = widgetFrame.widgetType
@@ -117,6 +110,8 @@ local function ReskinWidgetGroups(self)
 				ReskinSpellDisplayWidget(widgetFrame.Spell)
 			elseif widgetType == Type_StatusBar then
 				ReskinWidgetStatusBar(widgetFrame.Bar)
+			elseif widgetType == Type_ItemDisplay then
+				ReskinWidgetItemDisplay(widgetFrame.Item)
 			end
 		end
 	end
@@ -127,6 +122,8 @@ tinsert(C.defaultThemes, function()
 	ReskinWidgetGroups(_G.UIWidgetTopCenterContainerFrame)
 
 	hooksecurefunc(_G.UIWidgetBelowMinimapContainerFrame, "UpdateWidgetLayout", function(self)
+		if not self.widgetFrames then return end
+	
 		for _, widgetFrame in pairs(self.widgetFrames) do
 			if widgetFrame.widgetType == Type_CaptureBar then
 				if not widgetFrame:IsForbidden() then
@@ -139,26 +136,22 @@ tinsert(C.defaultThemes, function()
 	hooksecurefunc(_G.UIWidgetPowerBarContainerFrame, "UpdateWidgetLayout", ReskinPowerBarWidget)
 	ReskinPowerBarWidget(_G.UIWidgetPowerBarContainerFrame)
 
-	hooksecurefunc(_G.TopScenarioWidgetContainerBlock.WidgetContainer, "UpdateWidgetLayout", ReskinPowerBarWidget)
+	hooksecurefunc(_G.ObjectiveTrackerUIWidgetContainer, "UpdateWidgetLayout", ReskinPowerBarWidget)
+	ReskinPowerBarWidget(_G.ObjectiveTrackerUIWidgetContainer)
 
-	hooksecurefunc(_G.BottomScenarioWidgetContainerBlock.WidgetContainer, "UpdateWidgetLayout", function(self)
-		for _, widgetFrame in pairs(self.widgetFrames) do
-			if widgetFrame.widgetType == Type_SpellDisplay then
-				if not widgetFrame:IsForbidden() then
-					ReskinSpellDisplayWidget(widgetFrame.Spell)
-				end
-			end
-		end
-	end)
-
-	-- if font outline enabled in tooltip, fix text shows in two lines on Torghast info
+	--[[ if font outline enabled in tooltip, fix text shows in two lines on Torghast info
 	hooksecurefunc(_G.UIWidgetTemplateTextWithStateMixin, "Setup", function(self)
 		self.Text:SetWidth(self.Text:GetStringWidth() + 2)
-	end)
+	end)]]
 
 	-- needs review, might remove this in the future
 	hooksecurefunc(_G.UIWidgetTemplateStatusBarMixin, "Setup", function(self)
 		if self:IsForbidden() then return end
 		ReskinWidgetStatusBar(self.Bar)
+		if self.Label then
+			self.Label:SetTextColor(1, .8, 0)
+		end
 	end)
+
+	B.Reskin(_G.UIWidgetCenterDisplayFrame.CloseButton)
 end)

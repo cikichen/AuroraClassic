@@ -1,20 +1,13 @@
 local _, ns = ...
 local B, C, L, DB = unpack(ns)
+local cr, cg, cb = DB.r, DB.g, DB.b
 
-local function ReskinQuestHeader(header, isCalling)
+local function ReskinQuestHeader(header)
 	if header.styled then return end
 
-	header.Background:SetAlpha(.7)
+	if header.Background then header.Background:SetAlpha(.7) end
 	if header.Divider then header.Divider:Hide() end
 	if header.TopFiligree then header.TopFiligree:Hide() end
-
-	local collapseButton = isCalling and header or header.CollapseButton
-	if collapseButton then
-		collapseButton:GetPushedTexture():SetAlpha(0)
-		collapseButton:GetHighlightTexture():SetAlpha(0)
-		B.ReskinCollapse(collapseButton, true)
-		collapseButton.bg:SetFrameLevel(6)
-	end
 
 	header.styled = true
 end
@@ -34,12 +27,12 @@ local function ReskinSessionDialog(_, dialog)
 end
 
 local function ReskinAWQHeader()
-	if IsAddOnLoaded("AngrierWorldQuests") then
+	if C_AddOns.IsAddOnLoaded("AngrierWorldQuests") then
 		local button = _G["AngrierWorldQuestsHeader"]
 		if button and not button.styled then
-			B.ReskinCollapse(button, true)
-			button:GetPushedTexture():SetAlpha(0)
-			button:GetHighlightTexture():SetAlpha(0)
+			B.StripTextures(button)
+			B.CreateBDFrame(button, .25)
+			button:GetHighlightTexture():SetColorTexture(1, 1, 1, .25)
 
 			button.styled = true
 		end
@@ -51,36 +44,35 @@ tinsert(C.defaultThemes, function()
 
 	local QuestMapFrame = QuestMapFrame
 	QuestMapFrame.VerticalSeparator:SetAlpha(0)
-	QuestMapFrame.Background:SetAlpha(0)
 
 	local QuestScrollFrame = QuestScrollFrame
-	QuestScrollFrame.DetailFrame.TopDetail:SetAlpha(0)
-	QuestScrollFrame.DetailFrame.BottomDetail:SetAlpha(0)
 	QuestScrollFrame.Contents.Separator:SetAlpha(0)
 	ReskinQuestHeader(QuestScrollFrame.Contents.StoryHeader)
-	B.ReskinScroll(QuestScrollFrame.ScrollBar)
 
-	local campaignOverview = QuestMapFrame.CampaignOverview
-	campaignOverview.BG:SetAlpha(0)
-	ReskinQuestHeader(campaignOverview.Header)
-	B.ReskinScroll(campaignOverview.ScrollFrame.ScrollBar)
+	QuestScrollFrame.Background:SetAlpha(0)
+	B.StripTextures(QuestScrollFrame.BorderFrame)
+	B.StripTextures(QuestMapFrame.DetailsFrame.BackFrame)
+
+	QuestScrollFrame.Edge:Hide()
+	B.ReskinTrimScroll(QuestScrollFrame.ScrollBar)
+	B.ReskinEditBox(QuestScrollFrame.SearchBox)
 
 	-- Quest details
 
 	local DetailsFrame = QuestMapFrame.DetailsFrame
-	local CompleteQuestFrame = DetailsFrame.CompleteQuestFrame
 
 	B.StripTextures(DetailsFrame)
-	B.StripTextures(DetailsFrame.RewardsFrame)
 	B.StripTextures(DetailsFrame.ShareButton)
 	DetailsFrame.Bg:SetAlpha(0)
 	DetailsFrame.SealMaterialBG:SetAlpha(0)
 
-	B.Reskin(DetailsFrame.BackButton)
 	B.Reskin(DetailsFrame.AbandonButton)
 	B.Reskin(DetailsFrame.ShareButton)
 	B.Reskin(DetailsFrame.TrackButton)
-	B.ReskinScroll(QuestMapDetailsScrollFrame.ScrollBar)
+	B.ReskinTrimScroll(QuestMapDetailsScrollFrame.ScrollBar)
+
+	B.Reskin(DetailsFrame.BackFrame.BackButton)
+	B.StripTextures(DetailsFrame.RewardsFrameContainer.RewardsFrame)
 
 	DetailsFrame.AbandonButton:ClearAllPoints()
 	DetailsFrame.AbandonButton:SetPoint("BOTTOMLEFT", DetailsFrame, -1, 0)
@@ -100,12 +92,22 @@ tinsert(C.defaultThemes, function()
 		for button in QuestScrollFrame.headerFramePool:EnumerateActive() do
 			if button.ButtonText then
 				if not button.styled then
-					B.ReskinCollapse(button, true)
-					button:GetPushedTexture():SetAlpha(0)
-					button:GetHighlightTexture():SetAlpha(0)
+					B.StripTextures(button)
+					B.CreateBDFrame(button, .25)
+					button:GetHighlightTexture():SetColorTexture(1, 1, 1, .25)
 
 					button.styled = true
 				end
+			end
+		end
+
+		for button in QuestScrollFrame.titleFramePool:EnumerateActive() do
+			if not button.styled then
+				if button.Checkbox then
+					B.StripTextures(button.Checkbox, 2)
+					B.CreateBDFrame(button.Checkbox, 0, true)
+				end
+				button.styled = true
 			end
 		end
 
@@ -113,28 +115,77 @@ tinsert(C.defaultThemes, function()
 			ReskinQuestHeader(header)
 		end
 
+		for header in QuestScrollFrame.campaignHeaderMinimalFramePool:EnumerateActive() do
+			if header.CollapseButton and not header.styled then
+				B.StripTextures(header)
+				B.CreateBDFrame(header.Background, .25)
+				header.Highlight:SetColorTexture(1, 1, 1, .25)
+				header.styled = true
+			end
+		end
+
 		for header in QuestScrollFrame.covenantCallingsHeaderFramePool:EnumerateActive() do
-			ReskinQuestHeader(header, true)
+			ReskinQuestHeader(header)
 		end
 
 		ReskinAWQHeader()
 	end)
 
-	-- Complete quest frame
-	B.StripTextures(CompleteQuestFrame)
-	B.StripTextures(CompleteQuestFrame.CompleteButton)
-	B.Reskin(CompleteQuestFrame.CompleteButton)
+	-- Map legend
+	local mapLegend = QuestMapFrame.MapLegend
+	if mapLegend then
+		B.StripTextures(mapLegend.BorderFrame)
+		if mapLegend.BackButton then
+			B.Reskin(mapLegend.BackButton)
+		end
+		B.ReskinTrimScroll(mapLegend.ScrollFrame.ScrollBar)
+		B.StripTextures(mapLegend.ScrollFrame)
+		B.CreateBDFrame(mapLegend.ScrollFrame, .25)
+	end
+
+	-- Events
+	local event = QuestMapFrame.EventsFrame
+	if event then
+		B.StripTextures(event)
+		B.CreateBDFrame(event, .25)
+		B.ReskinTrimScroll(event.ScrollBar)
+		event.ScrollBox.Background:Hide()
+
+		local function updateCategory(_, button)
+			if button.styled then return end
+			if button.Highlight then
+				button.Highlight:SetColorTexture(1, 1, 1, .25)
+				button.Highlight:SetInside()
+			end
+			if button.Label then
+				B.StripTextures(button)
+				button.Label:SetTextColor(1, 1, 1)
+				local bg = B.CreateBDFrame(button, .25)
+				bg:SetPoint("TOPLEFT", 1, -2)
+				bg:SetPoint("BOTTOMRIGHT", -1, 2)
+			end
+			if button.Location then
+				button.Location:SetFontObject(Game13Font)
+			end
+			if button.Icon and not button.Timeline then
+				button.Background:Hide()
+				B.SetGradient(button, "H", 0, 1, 0, .35, 0, 260, 37):SetPoint("LEFT")
+			end
+			button.styled = true
+		end
+		ScrollUtil.AddAcquiredFrameCallback(event.ScrollBox, updateCategory, event, true)
+	end
 
 	-- [[ Quest log popup detail frame ]]
 
 	local QuestLogPopupDetailFrame = QuestLogPopupDetailFrame
 
 	B.ReskinPortraitFrame(QuestLogPopupDetailFrame)
-	B.ReskinScroll(QuestLogPopupDetailFrameScrollFrameScrollBar)
 	B.Reskin(QuestLogPopupDetailFrame.AbandonButton)
 	B.Reskin(QuestLogPopupDetailFrame.TrackButton)
 	B.Reskin(QuestLogPopupDetailFrame.ShareButton)
 	QuestLogPopupDetailFrame.SealMaterialBG:SetAlpha(0)
+	B.ReskinTrimScroll(QuestLogPopupDetailFrameScrollFrame.ScrollBar)
 
 	-- Show map button
 
@@ -197,4 +248,24 @@ tinsert(C.defaultThemes, function()
 			self.ExecuteSessionCommand.normalIcon:SetAtlas(atlas)
 		end
 	end)
+
+	-- Side tabs
+	local function reskinSideTab(tab)
+		if not tab then return end
+
+		B.StripTextures(tab, 2)
+		tab.bg = B.SetBD(tab)
+		tab.bg:SetInside(nil, 2, 2)
+		local hl = tab:CreateTexture(nil, "HIGHLIGHT")
+		hl:SetColorTexture(1, 1, 1, .25)
+		hl:SetInside(tab.bg)
+
+		tab.SelectedTexture:SetDrawLayer("BACKGROUND")
+		tab.SelectedTexture:SetColorTexture(cr, cg, cb, .25)
+		tab.SelectedTexture:SetInside(tab.bg)
+	end
+
+	for _, tab in ipairs(QuestMapFrame.TabButtons) do
+		reskinSideTab(tab)
+	end
 end)

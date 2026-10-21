@@ -7,7 +7,7 @@ tinsert(C.defaultThemes, function()
 	B.ReskinClose(LootFrame.ClosePanelButton)
 	B.StripTextures(LootFrame)
 	B.SetBD(LootFrame)
-	B.ReskinTrimScroll(LootFrame.ScrollBar, true)
+	B.ReskinTrimScroll(LootFrame.ScrollBar)
 
 	local function updateHighlight(self)
 		local button = self.__owner
@@ -27,22 +27,27 @@ tinsert(C.defaultThemes, function()
 		end
 	end
 
+	local function onHide(self)
+		self.__owner.bg:SetBackdropBorderColor(0, 0, 0)
+	end
+
 	hooksecurefunc(LootFrame.ScrollBox, "Update", function(self)
 		for i = 1, self.ScrollTarget:GetNumChildren() do
 			local button = select(i, self.ScrollTarget:GetChildren())
 			local item = button.Item
 			local questTexture = button.IconQuestTexture
+			local pushedFrame = button.PushedNameFrame
 			if item and not button.styled then
 				B.StripTextures(item, 1)
 				item.bg = B.ReskinIcon(item.icon)
-				item.bg:SetFrameLevel(4)
+				item.bg:SetFrameLevel(item.bg:GetFrameLevel() + 1)
 				B.ReskinIconBorder(item.IconBorder, true)
 
+				pushedFrame:SetAlpha(0)
 				questTexture:SetAlpha(0)
 				button.NameFrame:SetAlpha(0)
 				button.BorderFrame:SetAlpha(0)
 				button.HighlightNameFrame:SetAlpha(0)
-				button.PushedNameFrame:SetAlpha(0)
 				button.bg = B.CreateBDFrame(button.HighlightNameFrame, .25)
 				button.bg:SetAllPoints()
 				item.__owner = button
@@ -50,17 +55,14 @@ tinsert(C.defaultThemes, function()
 				item:HookScript("OnMouseDown", updatePushed)
 				item:HookScript("OnEnter", updateHighlight)
 				item:HookScript("OnLeave", updateHighlight)
+				item:HookScript("OnHide", onHide)
 
 				button.styled = true
 			end
 
 			local itemBG = item and item.bg
-			if itemBG then
-				if questTexture:IsShown() then
-					itemBG:SetBackdropBorderColor(1, .8, 0)
-				else
-					itemBG:SetBackdropBorderColor(0, 0, 0)
-				end
+			if itemBG and questTexture:IsShown() then
+				itemBG:SetBackdropBorderColor(1, .8, 0)
 			end
 		end
 	end)
@@ -84,19 +86,19 @@ tinsert(C.defaultThemes, function()
 	B.ReskinIcon(promptFrame.Icon)
 	promptFrame.Timer.Bar:SetTexture(DB.normTex)
 	B.CreateBDFrame(promptFrame.Timer, .25)
-
-	local from, to = "|T.+|t", "|T%%s:14:14:0:0:64:64:5:59:5:59|t"
-	BONUS_ROLL_COST = BONUS_ROLL_COST:gsub(from, to)
-	BONUS_ROLL_CURRENT_COUNT = BONUS_ROLL_CURRENT_COUNT:gsub(from, to)
+	B.ReplaceIconString(promptFrame.InfoFrame.Cost)
+	hooksecurefunc(promptFrame.InfoFrame.Cost, "SetText", B.ReplaceIconString)
 
 	-- Loot Roll Frame
-	hooksecurefunc("GroupLootFrame_OpenNewFrame", function()
+	local NUM_GROUP_LOOT_FRAMES = 4
+
+	hooksecurefunc("GroupLootContainer_OpenNewFrame", function()
 		for i = 1, NUM_GROUP_LOOT_FRAMES do
 			local frame = _G["GroupLootFrame"..i]
 			if not frame.styled then
-				frame.Border:SetAlpha(0)
 				frame.Background:SetAlpha(0)
 				frame.bg = B.SetBD(frame)
+				B.ReskinIconBorder(frame.Border, true)
 
 				frame.Timer.Bar:SetTexture(DB.bdTex)
 				frame.Timer.Bar:SetVertexColor(1, .8, 0)
@@ -111,12 +113,6 @@ tinsert(C.defaultThemes, function()
 				bg:SetPoint("BOTTOMRIGHT", frame.IconFrame.Icon, "BOTTOMRIGHT", 150, -1)
 
 				frame.styled = true
-			end
-
-			if frame:IsShown() then
-				local _, _, _, quality = GetLootRollItemInfo(frame.rollID)
-				local color = DB.QualityColors[quality]
-				frame.bg:SetBackdropBorderColor(color.r, color.g, color.b)
 			end
 		end
 	end)

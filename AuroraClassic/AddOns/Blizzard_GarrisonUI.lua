@@ -1,6 +1,7 @@
 local _, ns = ...
 local B, C, L, DB = unpack(ns)
 local r, g, b = DB.r, DB.g, DB.b
+local IsAddOnLoaded = C_AddOns.IsAddOnLoaded
 
 local function ReskinMissionPage(self)
 	B.StripTextures(self)
@@ -389,6 +390,21 @@ local function ReskinMissionBoards(self)
 end
 
 C.themes["Blizzard_GarrisonUI"] = function()
+	if AuroraClassicDB.Tooltips then
+		local tooltips = {
+			GarrisonMissionMechanicTooltip,
+			GarrisonMissionMechanicFollowerCounterTooltip,
+			GarrisonShipyardMapMissionTooltip,
+			GarrisonBonusAreaTooltip,
+			GarrisonBuildingFrame.BuildingLevelTooltip,
+			GarrisonFollowerAbilityWithoutCountersTooltip,
+			GarrisonFollowerMissionAbilityWithoutCountersTooltip,
+		}
+		for _, tooltip in ipairs(tooltips) do
+			B.ReskinTooltip(tooltip, true)
+		end
+	end
+
 	-- Tooltips
 	B.ReskinGarrisonTooltip(GarrisonFollowerAbilityWithoutCountersTooltip)
 	B.ReskinGarrisonTooltip(GarrisonFollowerMissionAbilityWithoutCountersTooltip)
@@ -785,7 +801,7 @@ C.themes["Blizzard_GarrisonUI"] = function()
 	-- Pick
 	local Pick = GarrisonRecruiterFrame.Pick
 	B.Reskin(Pick.ChooseRecruits)
-	B.ReskinDropDown(Pick.ThreatDropDown)
+	B.ReskinDropDown(Pick.ThreatDropdown)
 	B.ReskinRadio(Pick.Radio1)
 	B.ReskinRadio(Pick.Radio2)
 
@@ -957,7 +973,6 @@ C.themes["Blizzard_GarrisonUI"] = function()
 	CombatLog.ElevatedFrame:SetAlpha(0)
 	B.StripTextures(CombatLog.CombatLogMessageFrame)
 	B.CreateBDFrame(CombatLog.CombatLogMessageFrame, .25)
-	B.ReskinScroll(CombatLog.CombatLogMessageFrame.ScrollBar)
 
 	B.Reskin(HealFollowerButtonTemplate)
 	local bg = B.CreateBDFrame(CovenantMissionFrame.FollowerTab, .25)
@@ -974,44 +989,6 @@ C.themes["Blizzard_GarrisonUI"] = function()
 	CovenantMissionFrame.MissionComplete.Board:HookScript("OnShow", ReskinMissionBoards)
 
 	-- Addon supports
-
-	local function buttonOnUpdate(MissionList)
-		local buttons = MissionList.listScroll.buttons
-		for i = 1, #buttons do
-			local bu = select(3, buttons[i]:GetChildren())
-			if bu and bu:IsObjectType("Button") and not bu.styled then
-				B.Reskin(bu)
-				bu:SetSize(60, 45)
-				bu.styled = true
-			end
-		end
-	end
-
-	local function buttonOnShow(MissionPage)
-		for i = 18, 27 do
-			local bu = select(i, MissionPage:GetChildren())
-			if bu and bu:IsObjectType("Button") and not bu.styled then
-				B.Reskin(bu)
-				bu:SetSize(50, 45)
-				bu.styled = true
-			end
-		end
-	end
-
-	local f = CreateFrame("Frame")
-	f:RegisterEvent("ADDON_LOADED")
-	f:SetScript("OnEvent", function(_, event, addon)
-		if addon == "GarrisonMissionManager" then
-			for _, frame in next, {GarrisonMissionFrame, OrderHallMissionFrame, BFAMissionFrame} do
-				if frame then
-					hooksecurefunc(frame.MissionTab.MissionList, "Update", buttonOnUpdate)
-					frame.MissionTab.MissionPage:HookScript("OnShow", buttonOnShow)
-				end
-			end
-
-			f:UnregisterEvent(event)
-		end
-	end)
 
 	local function reskinWidgetFont(font, r, g, b)
 		if not AuroraClassicDB.FontOutline then return end
@@ -1075,7 +1052,8 @@ C.themes["Blizzard_GarrisonUI"] = function()
 		local ANIMA_TEXTURE = 3528288
 		local ANIMA_SPELLID = {[347555] = 3, [345706] = 5, [336327] = 35, [336456] = 250}
 		local function GetAnimaMultiplier(itemID)
-			local _, spellID = GetItemSpell(itemID)
+			if not itemID then return end
+			local _, spellID = C_Item.GetItemSpell(itemID)
 			return ANIMA_SPELLID[spellID]
 		end
 		local function SetAnimaActualCount(self, text)

@@ -26,12 +26,16 @@ local function reskinTableAttribute(frame)
 
 	B.StripTextures(frame.ScrollFrameArt)
 	B.CreateBDFrame(frame.ScrollFrameArt, .25)
-	B.ReskinScroll(frame.LinesScrollFrame.ScrollBar)
+	B.ReskinTrimScroll(frame.LinesScrollFrame.ScrollBar)
 
 	frame.styled = true
 end
 
 C.themes["Blizzard_DebugTools"] = function()
+	if AuroraClassicDB.Tooltips then
+		B.ReskinTooltip(FrameStackTooltip, true)
+	end
+
 	-- Table Attribute Display
 	reskinTableAttribute(TableAttributeDisplay)
 	hooksecurefunc(TableInspectorMixin, "InspectTable", reskinTableAttribute)

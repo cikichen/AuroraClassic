@@ -1,29 +1,13 @@
 local _, ns = ...
 local B, C, L, DB = unpack(ns)
-local r, g, b = DB.r, DB.g, DB.b
-
-local function scrollOnEnter(self)
-	self.thumbBG:SetBackdropColor(r, g, b, .25)
-	self.thumbBG:SetBackdropBorderColor(r, g, b)
-end
-
-local function scrollOnLeave(self)
-	self.thumbBG:SetBackdropColor(0, 0, 0, 0)
-	self.thumbBG:SetBackdropBorderColor(0, 0, 0)
-end
 
 local function ReskinChatScroll(self)
-	local bu = _G[self:GetName().."ThumbTexture"]
-	bu:SetAlpha(0)
-	bu:SetWidth(16)
-	local bg = B.CreateBDFrame(bu, 0, true)
-	local down = self.ScrollToBottomButton
-	B.ReskinArrow(down, "down")
-	down:SetPoint("BOTTOMRIGHT", _G[self:GetName().."ResizeButton"], "TOPRIGHT", -4, -2)
+	B.ReskinTrimScroll(self.ScrollBar)
 
-	self.ScrollBar.thumbBG = bg
-	self.ScrollBar:HookScript("OnEnter", scrollOnEnter)
-	self.ScrollBar:HookScript("OnLeave", scrollOnLeave)
+	B.StripTextures(self.ScrollToBottomButton)
+	local flash = self.ScrollToBottomButton.Flash
+	B.SetupArrow(flash, "down")
+	flash:SetVertexColor(1, .8, 0)
 end
 
 tinsert(C.defaultThemes, function()
@@ -36,12 +20,11 @@ tinsert(C.defaultThemes, function()
 	TimeAlertFrame:SetBackdrop(nil)
 	B.SetBD(TimeAlertFrame)
 
-	-- Battletag invite frame
-	local border, send, cancel = BattleTagInviteFrame:GetChildren()
-	border:Hide()
-	B.Reskin(send)
-	B.Reskin(cancel)
-	B.SetBD(BattleTagInviteFrame)
+	-- Battle.net invite frame
+	BattleNetInviteFrame.Border:Hide()
+	B.Reskin(BattleNetInviteFrame.SendButton)
+	B.Reskin(BattleNetInviteFrame.CancelButton)
+	B.SetBD(BattleNetInviteFrame)
 
 	local friendTex = "Interface\\HELPFRAME\\ReportLagIcon-Chat"
 	local queueTex = "Interface\\HELPFRAME\\HelpIcon-ItemRestoration"
@@ -93,7 +76,7 @@ tinsert(C.defaultThemes, function()
 	B.ReskinPortraitFrame(ChannelFrame)
 	B.Reskin(ChannelFrame.NewButton)
 	B.Reskin(ChannelFrame.SettingsButton)
-	B.ReskinScroll(ChannelFrame.ChannelList.ScrollBar)
+	B.ReskinTrimScroll(ChannelFrame.ChannelList.ScrollBar)
 	B.ReskinTrimScroll(ChannelFrame.ChannelRoster.ScrollBar)
 
 	hooksecurefunc(ChannelFrame.ChannelList, "Update", function(self)
@@ -122,15 +105,14 @@ tinsert(C.defaultThemes, function()
 	VoiceChatChannelActivatedNotification:SetBackdrop(nil)
 	B.SetBD(VoiceChatChannelActivatedNotification)
 
-	B.ReskinSlider(UnitPopupVoiceMicrophoneVolume.Slider)
-	B.ReskinSlider(UnitPopupVoiceSpeakerVolume.Slider)
-
 	-- VoiceActivityManager
 	hooksecurefunc(VoiceActivityManager, "LinkFrameNotificationAndGuid", function(_, _, notification, guid)
+		if C_ChatInfo.InChatMessagingLockdown() or not B:NotSecretValue(guid) then return end
+
 		local class = select(2, GetPlayerInfoByGUID(guid))
-		if class then
+		if B:NotSecretValue(class) and class then
 			local color = DB.ClassColors[class]
-			if notification.Name then
+			if color and notification.Name then
 				notification.Name:SetTextColor(color.r, color.g, color.b)
 			end
 		end

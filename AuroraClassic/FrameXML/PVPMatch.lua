@@ -8,14 +8,6 @@ tinsert(C.defaultThemes, function()
 	B.StripTextures(PVPReadyDialog)
 	PVPReadyDialogBackground:Hide()
 	B.SetBD(PVPReadyDialog)
-	PVPReadyDialogRoleIconTexture:SetTexture(DB.rolesTex)
-	B.CreateBDFrame(PVPReadyDialogRoleIcon)
-
-	hooksecurefunc("PVPReadyDialog_Display", function(self, _, _, _, _, _, role)
-		if self.roleIcon:IsShown() then
-			self.roleIcon.texture:SetTexCoord(B.GetRoleTexCoord(role))
-		end
-	end)
 
 	B.Reskin(PVPReadyDialog.enterButton)
 	B.Reskin(PVPReadyDialog.leaveButton)
@@ -44,7 +36,7 @@ tinsert(C.defaultThemes, function()
 
 	B.StripTextures(tabContainer)
 	for i = 1, 3 do
-		B.ReskinTab(tabContainer.TabGroup["Tab"..i])
+		B.StripTextures(tabContainer.TabGroup["Tab"..i]) -- ReskinTab might taint the score board
 	end
 
 	-- match results

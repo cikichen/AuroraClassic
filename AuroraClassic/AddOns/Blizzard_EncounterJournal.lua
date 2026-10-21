@@ -4,7 +4,6 @@ local B, C, L, DB = unpack(ns)
 local r, g, b = DB.r, DB.g, DB.b
 
 local function reskinHeader(header)
-	header.flashAnim.Play = B.Dummy
 	for i = 4, 18 do
 		select(i, header.button:GetRegions()):SetTexture("")
 	end
@@ -13,7 +12,6 @@ local function reskinHeader(header)
 	header.descriptionBGBottom:SetAlpha(0)
 	header.description:SetTextColor(1, 1, 1)
 	header.button.title:SetTextColor(1, 1, 1)
-	header.button.title.SetTextColor = B.Dummy
 	header.button.expandedIcon:SetWidth(20) -- don't wrap the text
 end
 
@@ -38,14 +36,17 @@ local function reskinSectionHeader()
 	end
 end
 
-local function reskinFilterToggle(button)
-	B.StripTextures(button)
-	B.Reskin(button)
-end
-
 C.themes["Blizzard_EncounterJournal"] = function()
+	if AuroraClassicDB.Tooltips then
+		B.ReskinTooltip(EncounterJournalTooltip, true)
+		for _, item in ipairs({EncounterJournalTooltip.Item1, EncounterJournalTooltip.Item2}) do
+			item.bg = B.ReskinIcon(item.icon)
+			B.ReskinIconBorder(item.IconBorder, true)
+		end
+	end
+
 	-- Tabs
-	for i = 1, 4 do
+	for i = 1, 7 do
 		local tab = EncounterJournal.Tabs[i]
 		if tab then
 			B.ReskinTab(tab)
@@ -76,8 +77,10 @@ C.themes["Blizzard_EncounterJournal"] = function()
 	end
 
 	-- Instance select
-	B.ReskinDropDown(EncounterJournal.instanceSelect.tierDropDown)
+	EncounterJournalInstanceSelectBG:SetAlpha(0)
+	B.ReskinDropDown(EncounterJournal.instanceSelect.ExpansionDropdown)
 	B.ReskinTrimScroll(EncounterJournal.instanceSelect.ScrollBar)
+	EncounterJournal.instanceSelect.evergreenBg:SetAlpha(0)
 
 	hooksecurefunc(EncounterJournal.instanceSelect.ScrollBox, "Update", function(self)
 		for i = 1, self.ScrollTarget:GetNumChildren() do
@@ -124,7 +127,6 @@ C.themes["Blizzard_EncounterJournal"] = function()
 				hl:SetInside(child.__bg)
 
 				child.text:SetTextColor(1, 1, 1)
-				child.text.SetTextColor = B.Dummy
 				child.creature:SetPoint("TOPLEFT", 0, -4)
 
 				child.styled = true
@@ -177,11 +179,20 @@ C.themes["Blizzard_EncounterJournal"] = function()
 
 	-- Search results
 	EncounterJournalSearchBox:SetFrameLevel(15)
-	for i = 1, 5 do
-		B.StyleSearchButton(EncounterJournalSearchBox["sbutton"..i])
+	local showAllResults = EncounterJournalSearchBox.showAllResults
+	local previewContainer = EncounterJournalSearchBox.searchPreviewContainer
+	B.StripTextures(previewContainer)
+	local bg = B.SetBD(previewContainer)
+	bg:SetPoint("TOPLEFT", -3, 3)
+	bg:SetPoint("BOTTOMRIGHT", showAllResults, 3, -3)
+
+	for i = 1, EncounterJournalSearchBox:GetNumChildren() do
+		local child = select(i, EncounterJournalSearchBox:GetChildren())
+		if child.iconFrame then
+			B.StyleSearchButton(child)
+		end
 	end
-	B.StyleSearchButton(EncounterJournalSearchBox.showAllResults)
-	B.StripTextures(EncounterJournalSearchBox.searchPreviewContainer)
+	B.StyleSearchButton(showAllResults)
 
 	do
 		local result = EncounterJournalSearchResults
@@ -216,22 +227,16 @@ C.themes["Blizzard_EncounterJournal"] = function()
 
 	-- Various controls
 	B.ReskinPortraitFrame(EncounterJournal)
-	B.Reskin(EncounterJournalEncounterFrameInfoResetButton)
 	B.ReskinInput(EncounterJournalSearchBox)
 	B.ReskinTrimScroll(EncounterJournal.encounter.instance.LoreScrollBar)
-	B.ReskinScroll(EncounterJournal.encounter.info.overviewScroll.ScrollBar)
 	B.ReskinTrimScroll(EncounterJournal.encounter.info.BossesScrollBar)
-	B.ReskinScroll(EncounterJournal.encounter.info.detailsScroll.ScrollBar)
 	B.ReskinTrimScroll(EncounterJournal.encounter.info.LootContainer.ScrollBar)
+	B.ReskinTrimScroll(EncounterJournal.encounter.info.overviewScroll.ScrollBar)
+	B.ReskinTrimScroll(EncounterJournal.encounter.info.detailsScroll.ScrollBar)
+	B.ReskinDropDown(EncounterJournal.encounter.info.LootContainer.filter)
+	B.ReskinDropDown(EncounterJournal.encounter.info.LootContainer.slotFilter)
+	B.ReskinDropDown(EncounterJournalEncounterFrameInfoDifficulty)
 
-	local buttons = {
-		EncounterJournalEncounterFrameInfoDifficulty,
-		EncounterJournalEncounterFrameInfoFilterToggle,
-		EncounterJournalEncounterFrameInfoSlotFilterToggle,
-	}
-	for _, button in pairs(buttons) do
-		reskinFilterToggle(button)
-	end
 
 	-- Suggest frame
 	local suggestFrame = EncounterJournal.suggestFrame
@@ -322,8 +327,6 @@ C.themes["Blizzard_EncounterJournal"] = function()
 
 	local lootJournal = EncounterJournal.LootJournal
 	B.StripTextures(lootJournal)
-	reskinFilterToggle(lootJournal.RuneforgePowerFilterDropDownButton)
-	reskinFilterToggle(lootJournal.ClassDropDownButton)
 
 	local iconColor = DB.QualityColors[Enum.ItemQuality.Legendary or 5] -- legendary color
 	B.ReskinTrimScroll(lootJournal.ScrollBar)
@@ -352,31 +355,94 @@ C.themes["Blizzard_EncounterJournal"] = function()
 	-- ItemSetsFrame
 	if EncounterJournal.LootJournalItems then
 		B.StripTextures(EncounterJournal.LootJournalItems)
-		B.ReskinDropDown(EncounterJournal.LootJournalViewDropDown)
+		B.ReskinDropDown(EncounterJournal.LootJournalViewDropdown)
 
-		local itemSetsFrame = EncounterJournal.LootJournalItems.ItemSetsFrame
-		B.ReskinScroll(itemSetsFrame.scrollBar)
-		reskinFilterToggle(itemSetsFrame.ClassButton)
+		local function reskinBar(bar)
+			if not bar.styled then
+				bar.ItemLevel:SetTextColor(1, 1, 1)
+				bar.Background:Hide()
+				B.CreateBDFrame(bar, .25)
 
-		hooksecurefunc(itemSetsFrame, "UpdateList", function(self)
-			local buttons = self.buttons
-			for i = 1, #buttons do
-				local button = buttons[i]
-				if not button.styled then
-					button.ItemLevel:SetTextColor(1, 1, 1)
-					button.Background:Hide()
-					B.CreateBDFrame(button, .25)
+				bar.styled = true
+			end
 
-					button.styled = true
+			local itemButtons = bar.ItemButtons
+			for i = 1, #itemButtons do
+				local button = itemButtons[i]
+				if not button.bg then
+					button.bg = B.ReskinIcon(button.Icon)
+					B.ReskinIconBorder(button.Border, true, true)
 				end
 			end
-		end)
+		end
 
-		hooksecurefunc(itemSetsFrame, "ConfigureItemButton", function(_, button)
-			if not button.bg then
-				button.bg = B.ReskinIcon(button.Icon)
-				B.ReskinIconBorder(button.Border, true, true)
-			end
+		local itemSetsFrame = EncounterJournal.LootJournalItems.ItemSetsFrame
+		B.ReskinTrimScroll(itemSetsFrame.ScrollBar)
+
+		hooksecurefunc(itemSetsFrame.ScrollBox, "Update", function(self)
+			self:ForEachFrame(reskinBar)
 		end)
+		B.ReskinDropDown(itemSetsFrame.ClassDropdown)
+	end
+
+	-- Monthly activities
+	local frame = EncounterJournalMonthlyActivitiesFrame
+	if frame then
+		B.StripTextures(frame)
+		B.ReskinTrimScroll(frame.FilterList.ScrollBar)
+		B.ReskinTrimScroll(frame.ScrollBar)
+		if frame.ThemeContainer then
+			frame.ThemeContainer:SetAlpha(0)
+		end
+
+		local function replaceBlackColor(text, r, g, b)
+			if r == 0 and g == 0 and b == 0 then
+				text:SetTextColor(.7, .7, .7)
+			end
+		end
+
+		local function handleText(button)
+			local container = button.TextContainer
+			if container and not container.styled then
+				hooksecurefunc(container.NameText, "SetTextColor", replaceBlackColor)
+				hooksecurefunc(container.ConditionsText, "SetTextColor", replaceBlackColor)
+				container.styled = true
+			end
+		end
+
+		hooksecurefunc(frame.ScrollBox, "Update", function(self)
+			self:ForEachFrame(handleText)
+		end)
+	end
+
+	-- Tutorials
+	local frame = EncounterJournal.TutorialsFrame
+	if frame then
+		frame.Contents.Header:SetTextColor(1, .8, 0)
+		frame.Contents.Description:SetTextColor(1, 1, 1)
+		B.Reskin(frame.Contents.StartButton)
+	end
+
+	-- Journeys
+	local frame = EncounterJournal.JourneysFrame
+	if frame then
+		local function reskinJourneyCard(button)
+			local toggle = button.WatchedFactionToggleFrame
+			if toggle and not toggle.styled then
+				B.ReskinCheck(toggle.WatchFactionCheckbox)
+				toggle.styled = true
+			end
+		end
+		local function reskinJourneyCards(scrollBox)
+			scrollBox:ForEachFrame(reskinJourneyCard)
+		end
+
+		B.StripTextures(frame.BorderFrame)
+		B.ReskinTrimScroll(frame.ScrollBar)
+		B.Reskin(frame.JourneyProgress.OverviewBtn)
+		B.Reskin(frame.JourneyProgress.LevelSkipButton)
+		B.Reskin(frame.JourneyOverview.OverviewBtn)
+		hooksecurefunc(frame.JourneysList, "Update", reskinJourneyCards)
+		reskinJourneyCards(frame.JourneysList)
 	end
 end

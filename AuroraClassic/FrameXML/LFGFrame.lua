@@ -35,25 +35,6 @@ local function reskinDialogReward(button)
 	button.styled = true
 end
 
-local function reskinRoleButton(buttons, role)
-	for _, roleButton in pairs(buttons) do
-		B.ReskinRole(roleButton, role)
-	end
-end
-
-local function updateRoleBonus(roleButton)
-	if not roleButton.bg then return end
-	if roleButton.shortageBorder and roleButton.shortageBorder:IsShown() then
-		if roleButton.cover:IsShown() then
-			roleButton.bg:SetBackdropBorderColor(.5, .45, .03)
-		else
-			roleButton.bg:SetBackdropBorderColor(1, .9, .06)
-		end
-	else
-		roleButton.bg:SetBackdropBorderColor(0, 0, 0)
-	end
-end
-
 local function styleRewardRole(roleIcon)
 	if roleIcon and roleIcon:IsShown() then
 		B.ReskinSmallRole(roleIcon.texture, roleIcon.role)
@@ -70,7 +51,10 @@ tinsert(C.defaultThemes, function()
 			button.expandOrCollapseButton.styled = true
 		end
 
-		button.enableButton:GetCheckedTexture():SetDesaturated(true)
+		button.enableButton:GetCheckedTexture():SetAtlas("checkmark-minimal")
+		local disabledTexture = button.enableButton:GetDisabledCheckedTexture()
+		disabledTexture:SetAtlas("checkmark-minimal")
+		disabledTexture:SetDesaturated(true)
 	end)
 
 	B.StripTextures(LFDParentFrame)
@@ -80,17 +64,13 @@ tinsert(C.defaultThemes, function()
 	B.Reskin(LFDRoleCheckPopupAcceptButton)
 	B.Reskin(LFDRoleCheckPopupDeclineButton)
 	B.ReskinTrimScroll(LFDQueueFrameSpecific.ScrollBar)
-	B.StripTextures(LFDQueueFrameRandomScrollFrameScrollBar, 0)
-	B.ReskinScroll(LFDQueueFrameRandomScrollFrameScrollBar)
-	B.ReskinDropDown(LFDQueueFrameTypeDropDown)
+	B.ReskinTrimScroll(LFDQueueFrameRandomScrollFrame.ScrollBar)
+	B.ReskinDropDown(LFDQueueFrameTypeDropdown)
 	B.Reskin(LFDQueueFrameFindGroupButton)
 	B.Reskin(LFDQueueFramePartyBackfillBackfillButton)
 	B.Reskin(LFDQueueFramePartyBackfillNoBackfillButton)
 	B.Reskin(LFDQueueFrameNoLFDWhileLFRLeaveQueueButton)
 	styleRewardButton(LFDQueueFrameRandomScrollFrameChildFrameMoneyReward)
-
-	LFDQueueFrameRandomScrollFrame:SetWidth(LFDQueueFrameRandomScrollFrame:GetWidth()+1)
-	LFDQueueFrameRandomScrollFrameScrollBarScrollDownButton:SetPoint("TOP", LFDQueueFrameRandomScrollFrameScrollBar, "BOTTOM", 0, 2)
 
 	-- LFGFrame
 	hooksecurefunc("LFGRewardsFrame_SetItemButton", function(parentFrame, _, index)
@@ -101,33 +81,6 @@ tinsert(C.defaultThemes, function()
 		styleRewardButton(button)
 		styleRewardRole(button.roleIcon1)
 		styleRewardRole(button.roleIcon2)
-	end)
-
-	LFGDungeonReadyDialogRoleIconLeaderIcon:SetTexture(nil)
-	local leaderFrame = CreateFrame("Frame", nil, LFGDungeonReadyDialog)
-	leaderFrame:SetFrameLevel(5)
-	leaderFrame:SetPoint("TOPLEFT", LFGDungeonReadyDialogRoleIcon, 4, -4)
-	leaderFrame:SetSize(19, 19)
-	local leaderIcon = leaderFrame:CreateTexture(nil, "ARTWORK")
-	leaderIcon:SetAllPoints()
-	B.ReskinRole(leaderIcon, "LEADER")
-
-	local iconTexture = LFGDungeonReadyDialogRoleIconTexture
-	iconTexture:SetTexture(DB.rolesTex)
-	local bg = B.CreateBDFrame(iconTexture)
-
-	hooksecurefunc("LFGDungeonReadyPopup_Update", function()
-		LFGDungeonReadyDialog:SetBackdrop(nil)
-		leaderFrame:SetShown(LFGDungeonReadyDialogRoleIconLeaderIcon:IsShown())
-
-		if LFGDungeonReadyDialogRoleIcon:IsShown() then
-			local role = select(7, GetLFGProposal())
-			if not role or role == "NONE" then role = "DAMAGER" end
-			iconTexture:SetTexCoord(B.GetRoleTexCoord(role))
-			bg:Show()
-		else
-			bg:Hide()
-		end
 	end)
 
 	hooksecurefunc("LFGDungeonReadyDialogReward_SetMisc", function(button)
@@ -163,39 +116,36 @@ tinsert(C.defaultThemes, function()
 	B.ReskinClose(LFGDungeonReadyDialogCloseButton)
 	B.ReskinClose(LFGDungeonReadyStatusCloseButton)
 
-	local tanks = {
+	local roleButtons = {
+		-- tank
 		LFDQueueFrameRoleButtonTank,
 		LFDRoleCheckPopupRoleButtonTank,
 		RaidFinderQueueFrameRoleButtonTank,
 		LFGInvitePopupRoleButtonTank,
 		LFGListApplicationDialog.TankButton,
 		LFGDungeonReadyStatusGroupedTank,
-	}
-	reskinRoleButton(tanks, "TANK")
-
-	local healers = {
+		-- healer
 		LFDQueueFrameRoleButtonHealer,
 		LFDRoleCheckPopupRoleButtonHealer,
 		RaidFinderQueueFrameRoleButtonHealer,
 		LFGInvitePopupRoleButtonHealer,
 		LFGListApplicationDialog.HealerButton,
 		LFGDungeonReadyStatusGroupedHealer,
-	}
-	reskinRoleButton(healers, "HEALER")
-
-	local dps = {
+		-- dps
 		LFDQueueFrameRoleButtonDPS,
 		LFDRoleCheckPopupRoleButtonDPS,
 		RaidFinderQueueFrameRoleButtonDPS,
 		LFGInvitePopupRoleButtonDPS,
 		LFGListApplicationDialog.DamagerButton,
 		LFGDungeonReadyStatusGroupedDamager,
+		-- leader
+		LFDQueueFrameRoleButtonLeader,
+		RaidFinderQueueFrameRoleButtonLeader,
+		LFGDungeonReadyStatusRolelessReady,
 	}
-	reskinRoleButton(dps, "DPS")
-
-	B.ReskinRole(LFDQueueFrameRoleButtonLeader, "LEADER")
-	B.ReskinRole(RaidFinderQueueFrameRoleButtonLeader, "LEADER")
-	B.ReskinRole(LFGDungeonReadyStatusRolelessReady, "READY")
+	for _, roleButton in pairs(roleButtons) do
+		B.ReskinRole(roleButton)
+	end
 
 	hooksecurefunc("SetCheckButtonIsRadio", function(button)
 		button:SetNormalTexture(0)
@@ -207,45 +157,6 @@ tinsert(C.defaultThemes, function()
 		button:GetDisabledCheckedTexture():SetTexCoord(0, 1, 0, 1)
 	end)
 
-	hooksecurefunc("LFG_SetRoleIconIncentive", function(roleButton, incentiveIndex)
-		if incentiveIndex then
-			local tex
-			if incentiveIndex == LFG_ROLE_SHORTAGE_PLENTIFUL then
-				tex = "coin-copper"
-			elseif incentiveIndex == LFG_ROLE_SHORTAGE_UNCOMMON then
-				tex = "coin-silver"
-			elseif incentiveIndex == LFG_ROLE_SHORTAGE_RARE then
-				tex = "coin-gold"
-			end
-			roleButton.incentiveIcon.texture:SetInside()
-			roleButton.incentiveIcon.texture:SetAtlas(tex)
-		end
-
-		updateRoleBonus(roleButton)
-	end)
-
-	hooksecurefunc("LFG_EnableRoleButton", updateRoleBonus)
-
-	for i = 1, 5 do
-		local roleButton = _G["LFGDungeonReadyStatusIndividualPlayer"..i]
-		roleButton.texture:SetTexture(DB.rolesTex)
-		B.CreateBDFrame(roleButton)
-		if i == 1 then
-			roleButton:SetPoint("LEFT", 7, 0)
-		else
-			roleButton:SetPoint("LEFT", _G["LFGDungeonReadyStatusIndividualPlayer"..(i-1)], "RIGHT", 4, 0)
-		end
-	end
-
-	hooksecurefunc("LFGDungeonReadyStatusIndividual_UpdateIcon", function(button)
-		local role = select(2, GetLFGProposalMember(button:GetID()))
-		button.texture:SetTexCoord(B.GetRoleTexCoord(role))
-	end)
-
-	hooksecurefunc("LFGDungeonReadyStatusGrouped_UpdateIcon", function(button, role)
-		button.texture:SetTexCoord(B.GetRoleTexCoord(role))
-	end)
-
 	-- RaidFinder
 	RaidFinderFrameBottomInset:Hide()
 	RaidFinderFrameRoleBackground:Hide()
@@ -254,8 +165,8 @@ tinsert(C.defaultThemes, function()
 	-- this fixes right border of second reward being cut off
 	RaidFinderQueueFrameScrollFrame:SetWidth(RaidFinderQueueFrameScrollFrame:GetWidth()+1)
 
-	B.ReskinScroll(RaidFinderQueueFrameScrollFrameScrollBar)
-	B.ReskinDropDown(RaidFinderQueueFrameSelectionDropDown)
+	B.ReskinTrimScroll(RaidFinderQueueFrameScrollFrame.ScrollBar)
+	B.ReskinDropDown(RaidFinderQueueFrameSelectionDropdown)
 	B.Reskin(RaidFinderFrameFindRaidButton)
 	B.Reskin(RaidFinderQueueFrameIneligibleFrameLeaveQueueButton)
 	B.Reskin(RaidFinderQueueFramePartyBackfillBackfillButton)

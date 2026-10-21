@@ -2,9 +2,37 @@ local _, ns = ...
 local B, C, L, DB = unpack(ns)
 local cr, cg, cb = DB.r, DB.g, DB.b
 
+-- Secret
+do
+	function B:IsSecretValue(value)
+		return issecretvalue and issecretvalue(value)
+	end
+
+	function B:NotSecretValue(value)
+		return not issecretvalue or not issecretvalue(value)
+	end
+
+	function B:IsSecretTable(object)
+		return issecrettable and issecrettable(object)
+	end
+
+	function B:NotSecretTable(object)
+		return not issecrettable or not issecrettable(object)
+	end
+
+	function B:SendChatMessage(...)
+		if C_ChatInfo.InChatMessagingLockdown() then return end
+		return C_ChatInfo.SendChatMessage(...)
+	end
+end
+
 -- Kill regions
 do
 	function B:Dummy()
+		return
+	end
+
+	function B:SmoothBar()
 		return
 	end
 
@@ -70,7 +98,7 @@ do
 		if self.GetNumRegions then
 			for i = 1, self:GetNumRegions() do
 				local region = select(i, self:GetRegions())
-				if region and region.IsObjectType and region:IsObjectType("Texture") then
+				if region and region.IsObjectType and region:IsObjectType("Texture") and not region.isIgnored then
 					if kill and type(kill) == "boolean" then
 						B.HideObject(region)
 					elseif tonumber(kill) then
@@ -96,6 +124,24 @@ do
 		self:SetFont(DB.Font[1], size, DB.Font[3])
 	end
 
+	-- Gradient texture
+	local orientationAbbr = {
+		["V"] = "Vertical",
+		["H"] = "Horizontal",
+	}
+	function B:SetGradient(orientation, r, g, b, a1, a2, width, height)
+		orientation = orientationAbbr[orientation]
+		if not orientation then return end
+
+		local tex = self:CreateTexture(nil, "BACKGROUND")
+		tex:SetTexture(DB.bdTex)
+		tex:SetGradient(orientation, CreateColor(r, g, b, a1), CreateColor(r, g, b, a2))
+		if width then tex:SetWidth(width) end
+		if height then tex:SetHeight(height) end
+
+		return tex
+	end
+
 	function B:CreateTex()
 		if self.__bgTex then return end
 
@@ -113,9 +159,9 @@ do
 	end
 
 	local shadowBackdrop = {edgeFile = DB.glowTex}
-	function B:CreateSD()
-		if not AuroraClassicDB.Shadow then return end
-		if self.__shadow then return end
+	function B:CreateSD(size, override)
+		if self.__shadow then return self.__shadow end
+		if not override and not AuroraClassicDB.Shadow then return end
 
 		local frame = self
 		if self:IsObjectType("Texture") then frame = self:GetParent() end
@@ -125,7 +171,7 @@ do
 		self.__shadow:SetOutside(self, size or 4, size or 4)
 		self.__shadow:SetBackdrop(shadowBackdrop)
 		self.__shadow:SetBackdropBorderColor(0, 0, 0, size and 1 or .4)
-		self.__shadow:SetFrameLevel(1)
+		self.__shadow:SetFrameLevel(0) -- needs review
 
 		return self.__shadow
 	end
@@ -200,38 +246,36 @@ do
 
 	local AtlasToQuality = {
 		["error"] = 99,
-		["uncollected"] = LE_ITEM_QUALITY_POOR,
-		["gray"] = LE_ITEM_QUALITY_POOR,
-		["white"] = LE_ITEM_QUALITY_COMMON,
-		["green"] = LE_ITEM_QUALITY_UNCOMMON,
-		["blue"] = LE_ITEM_QUALITY_RARE,
-		["purple"] = LE_ITEM_QUALITY_EPIC,
-		["orange"] = LE_ITEM_QUALITY_LEGENDARY,
-		["artifact"] = LE_ITEM_QUALITY_ARTIFACT,
-		["account"] = LE_ITEM_QUALITY_HEIRLOOM,
+		["uncollected"] = Enum.ItemQuality.Poor,
+		["gray"] = Enum.ItemQuality.Poor,
+		["white"] = Enum.ItemQuality.Common,
+		["green"] = Enum.ItemQuality.Uncommon,
+		["blue"] = Enum.ItemQuality.Rare,
+		["purple"] = Enum.ItemQuality.Epic,
+		["orange"] = Enum.ItemQuality.Legendary,
+		["artifact"] = Enum.ItemQuality.Artifact,
+		["account"] = Enum.ItemQuality.Heirloom,
+		["epic"] = Enum.ItemQuality.Epic,
+		["legendary"] = Enum.ItemQuality.Legendary,
 	}
-	local function updateIconBorderColorByAtlas(self, atlas)
+	local function updateIconBorderColorByAtlas(border, atlas)
 		local atlasAbbr = atlas and strmatch(atlas, "%-(%w+)$")
-		local quality = atlasAbbr and AtlasToQuality[atlasAbbr]
+		local quality = atlasAbbr and AtlasToQuality[strlower(atlasAbbr)]
 		local color = DB.QualityColors[quality or 1]
-		self.__owner.bg:SetBackdropBorderColor(color.r, color.g, color.b)
+		border.__owner.bg:SetBackdropBorderColor(color.r, color.g, color.b)
 	end
 
 	local greyRGB = DB.QualityColors[0].r
-	local function updateIconBorderColor(self, r, g, b)
+	local function updateIconBorderColor(border, r, g, b)
 		if not r or r == greyRGB or (r>.99 and g>.99 and b>.99) then
 			r, g, b = 0, 0, 0
 		end
-		self.__owner.bg:SetBackdropBorderColor(r, g, b)
+		border.__owner.bg:SetBackdropBorderColor(r, g, b)
+		border:Hide(true) -- fix icon border
 	end
-	local function resetIconBorderColor(self, texture)
+	local function resetIconBorderColor(border, texture)
 		if not texture then
-			self.__owner.bg:SetBackdropBorderColor(0, 0, 0)
-		end
-	end
-	local function resetIconBorder(button, quality)
-		if not quality then
-			button.IconBorder:Hide()
+			border.__owner.bg:SetBackdropBorderColor(0, 0, 0)
 		end
 	end
 	local function iconBorderShown(border, show)
@@ -257,11 +301,6 @@ do
 		end
 		hooksecurefunc(self, "Hide", resetIconBorderColor)
 		hooksecurefunc(self, "SetShown", iconBorderShown)
-
-		-- disable this and see how it goes, needs review
-		--if self.__owner.SetItemButtonQuality then
-		--	hooksecurefunc(self.__owner, "SetItemButtonQuality", resetIconBorder)
-		--end
 	end
 
 	local CLASS_ICON_TCOORDS = CLASS_ICON_TCOORDS
@@ -526,24 +565,21 @@ do
 	end
 
 	-- WowTrimScrollBar
-	function B:ReskinTrimScroll(minimal)
+	function B:ReskinTrimScroll(noTaint)
 		B.StripTextures(self)
-		reskinScrollArrow(self.Back, "up", minimal)
-		reskinScrollArrow(self.Forward, "down", minimal)
+		reskinScrollArrow(self.Back, "up", true)
+		reskinScrollArrow(self.Forward, "down", true)
 		if self.Track then
 			self.Track:DisableDrawLayer("ARTWORK")
 		end
 
+		if noTaint then return end
 		local thumb = self:GetThumb()
 		if thumb then
+			thumb:DisableDrawLayer("ARTWORK")
 			thumb:DisableDrawLayer("BACKGROUND")
 			thumb.bg = B.CreateBDFrame(thumb, .25)
 			thumb.bg:SetBackdropColor(cr, cg, cb, .25)
-			if not minimal then
-				thumb.bg:SetPoint("TOPLEFT", 4, -1)
-				thumb.bg:SetPoint("BOTTOMRIGHT", -4, 1)
-			end
-			self.thumb = thumb
 
 			thumb:HookScript("OnEnter", Thumb_OnEnter)
 			thumb:HookScript("OnLeave", Thumb_OnLeave)
@@ -555,22 +591,24 @@ do
 	-- Handle dropdown
 	function B:ReskinDropDown()
 		B.StripTextures(self)
-
-		local frameName = self.GetName and self:GetName()
-		local down = self.Button or frameName and (_G[frameName.."Button"] or _G[frameName.."_Button"])
+		if self.Arrow then self.Arrow:SetAlpha(0) end
 
 		local bg = B.CreateBDFrame(self, 0, true)
-		bg:SetPoint("TOPLEFT", 16, -4)
-		bg:SetPoint("BOTTOMRIGHT", -18, 8)
+		bg:SetPoint("TOPLEFT", 0, -2)
+		bg:SetPoint("BOTTOMRIGHT", 0, 2)
+		local tex = self:CreateTexture(nil, "ARTWORK")
+		tex:SetPoint("RIGHT", bg, -3, 0)
+		tex:SetSize(18, 18)
+		B.SetupArrow(tex, "down")
+		self.__texture = tex
 
-		down:ClearAllPoints()
-		down:SetPoint("RIGHT", bg, -2, 0)
-		B.ReskinArrow(down, "down")
+		self:HookScript("OnEnter", B.Texture_OnEnter)
+		self:HookScript("OnLeave", B.Texture_OnLeave)
 	end
 
 	-- Handle close button
 	function B:Texture_OnEnter()
-		if self:IsEnabled() then
+		if self.IsEnabled and self:IsEnabled() then
 			if self.bg then
 				self.bg:SetBackdropColor(cr, cg, cb, .25)
 			else
@@ -594,18 +632,20 @@ do
 		button:SetPoint("TOPRIGHT", button.__owner, "TOPRIGHT", button.__xOffset, button.__yOffset)
 		button.isSetting = nil
 	end
-	function B:ReskinClose(parent, xOffset, yOffset)
+	function B:ReskinClose(parent, xOffset, yOffset, override)
 		parent = parent or self:GetParent()
 		xOffset = xOffset or -6
 		yOffset = yOffset or -6
 
 		self:SetSize(16, 16)
-		self:ClearAllPoints()
-		self:SetPoint("TOPRIGHT", parent, "TOPRIGHT", xOffset, yOffset)
-		self.__owner = parent
-		self.__xOffset = xOffset
-		self.__yOffset = yOffset
-		hooksecurefunc(self, "SetPoint", resetCloseButtonAnchor)
+		if not override then
+			self:ClearAllPoints()
+			self:SetPoint("TOPRIGHT", parent, "TOPRIGHT", xOffset, yOffset)
+			self.__owner = parent
+			self.__xOffset = xOffset
+			self.__yOffset = yOffset
+			hooksecurefunc(self, "SetPoint", resetCloseButtonAnchor)
+		end
 
 		B.StripTextures(self)
 		if self.Border then self.Border:SetAlpha(0) end
@@ -662,6 +702,7 @@ do
 	function B:ReskinArrow(direction)
 		self:SetSize(16, 16)
 		B.Reskin(self, true)
+		if self.Texture then self.Texture:SetAlpha(0) end
 
 		self:SetDisabledTexture(DB.bdTex)
 		local dis = self:GetDisabledTexture()
@@ -703,6 +744,12 @@ do
 		if self.ResetButton then
 			B.ReskinFilterReset(self.ResetButton)
 		end
+		self.__bg:SetOutside()
+		local tex = self:CreateTexture(nil, "ARTWORK")
+		B.SetupArrow(tex, "right")
+		tex:SetSize(16, 16)
+		tex:SetPoint("RIGHT", -2, 0)
+		self.__texture = tex
 	end
 
 	function B:ReskinNavBar()
@@ -879,7 +926,7 @@ do
 		local bg = B.CreateBDFrame(self, .25, true)
 		bg:ClearAllPoints()
 		bg:SetSize(13, 13)
-		bg:SetPoint("TOPLEFT", self:GetNormalTexture())
+		bg:SetPoint("LEFT", self:GetNormalTexture())
 		self.bg = bg
 
 		self.__texture = bg:CreateTexture(nil, "OVERLAY")
@@ -998,7 +1045,8 @@ do
 
 	function B:StyleSearchButton()
 		B.StripTextures(self)
-		B.CreateBDFrame(self, .25)
+		local bg = B.CreateBDFrame(self, .25)
+		bg:SetInside()
 		local icon = self.icon or self.Icon
 		if icon then
 			B.ReskinIcon(icon)
@@ -1007,11 +1055,14 @@ do
 		self:SetHighlightTexture(DB.bdTex)
 		local hl = self:GetHighlightTexture()
 		hl:SetVertexColor(cr, cg, cb, .25)
-		hl:SetInside()
+		hl:SetInside(bg)
 	end
 
 	function B:AffixesSetup()
-		for _, frame in ipairs(self.Affixes) do
+		local list = self.AffixesContainer and self.AffixesContainer.Affixes or self.Affixes
+		if not list then return end
+
+		for _, frame in ipairs(list) do
 			frame.Border:SetTexture(nil)
 			frame.Portrait:SetTexture(nil)
 			if not frame.bg then
@@ -1028,68 +1079,29 @@ do
 	end
 
 	-- Role Icons
-	function B:GetRoleTexCoord()
-		if self == "TANK" then
-			return .34/9.03, 2.85/9.03, 3.16/9.03, 5.67/9.03
-		elseif self == "DPS" or self == "DAMAGER" then
-			return 3.27/9.03, 5.78/9.03, 3.16/9.03, 5.67/9.03
-		elseif self == "HEALER" then
-			return 3.27/9.03, 5.78/9.03, .27/9.03, 2.78/9.03
-		elseif self == "LEADER" then
-			return .34/9.03, 2.85/9.03, .27/9.03, 2.78/9.03
-		elseif self == "READY" then
-			return 6.17/9.03, 8.68/9.03, .27/9.03, 2.78/9.03
-		elseif self == "PENDING" then
-			return 6.17/9.03, 8.68/9.03, 3.16/9.03, 5.67/9.03
-		elseif self == "REFUSE" then
-			return 3.27/9.03, 5.78/9.03, 6.04/9.03, 8.55/9.03
-		end
-	end
-
-	function B:GetRoleTex()
-		if self == "TANK" then
-			return DB.tankTex
-		elseif self == "DPS" or self == "DAMAGER" then
-			return DB.dpsTex
-		elseif self == "HEALER" then
-			return DB.healTex
-		end
-	end
+	local GroupRoleTex = {
+		TANK = "groupfinder-icon-role-micro-tank",
+		HEALER = "groupfinder-icon-role-micro-heal",
+		DAMAGER = "groupfinder-icon-role-micro-dps",
+		DPS = "groupfinder-icon-role-micro-dps",
+	}
 
 	function B:ReskinSmallRole(role)
-		self:SetTexture(B.GetRoleTex(role))
 		self:SetTexCoord(0, 1, 0, 1)
+		self:SetAtlas(GroupRoleTex[role])
 	end
 
-	function B:ReskinRole(role)
+	function B:ReskinRole()
 		if self.background then self.background:SetTexture("") end
 
 		local cover = self.cover or self.Cover
 		if cover then cover:SetTexture("") end
 
-		local texture = self.GetNormalTexture and self:GetNormalTexture() or self.texture or self.Texture or (self.SetTexture and self) or self.Icon
-		if texture then
-			texture:SetTexture(DB.rolesTex)
-			texture:SetTexCoord(B.GetRoleTexCoord(role))
-		end
-		self.bg = B.CreateBDFrame(self)
-
-		local checkButton = self.checkButton or self.CheckButton or self.CheckBox
+		local checkButton = self.checkButton or self.CheckButton or self.CheckBox or self.Checkbox
 		if checkButton then
 			checkButton:SetFrameLevel(self:GetFrameLevel() + 2)
 			checkButton:SetPoint("BOTTOMLEFT", -2, -2)
 			B.ReskinCheck(checkButton)
-		end
-
-		local shortageBorder = self.shortageBorder
-		if shortageBorder then
-			shortageBorder:SetTexture("")
-			local icon = self.incentiveIcon
-			icon:SetPoint("BOTTOMRIGHT")
-			icon:SetSize(14, 14)
-			icon.texture:SetSize(14, 14)
-			B.ReskinIcon(icon.texture)
-			icon.border:SetTexture("")
 		end
 	end
 end
@@ -1097,19 +1109,19 @@ end
 -- Add API
 do
 	local function WatchPixelSnap(frame, snap)
-		if (frame and not frame:IsForbidden()) and frame.PixelSnapDisabled and snap then
+		if B:NotSecretTable(frame) and (frame and not frame:IsForbidden()) and frame.PixelSnapDisabled and snap then
 			frame.PixelSnapDisabled = nil
 		end
 	end
 
 	local function DisablePixelSnap(frame)
-		if (frame and not frame:IsForbidden()) and not frame.PixelSnapDisabled then
+		if B:NotSecretTable(frame) and (frame and not frame:IsForbidden()) and not frame.PixelSnapDisabled then
 			if frame.SetSnapToPixelGrid then
 				frame:SetSnapToPixelGrid(false)
 				frame:SetTexelSnappingBias(0)
 			elseif frame.GetStatusBarTexture then
 				local texture = frame:GetStatusBarTexture()
-				if texture and texture.SetSnapToPixelGrid then
+				if type(texture) == "table" and texture.SetSnapToPixelGrid then
 					texture:SetSnapToPixelGrid(false)
 					texture:SetTexelSnappingBias(0)
 				end
@@ -1178,4 +1190,13 @@ do
 
 		object = EnumerateFrames(object)
 	end
+end
+
+-- Blizz fix
+local old_SetupTextureCoordinates = BackdropTemplateMixin.SetupTextureCoordinates
+
+function BackdropTemplateMixin:SetupTextureCoordinates()
+	local width = self:GetWidth()
+	if B:IsSecretValue(width) then return end -- needs review
+	old_SetupTextureCoordinates(self)
 end

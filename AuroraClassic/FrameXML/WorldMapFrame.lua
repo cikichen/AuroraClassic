@@ -12,9 +12,9 @@ tinsert(C.defaultThemes, function()
 
 	local overlayFrames = WorldMapFrame.overlayFrames
 	B.ReskinDropDown(overlayFrames[1])
-	B.StripTextures(overlayFrames[2], 3)
 	B.StripTextures(overlayFrames[3], 3)
 	overlayFrames[3].ActiveTexture:SetTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Toggle")
+	B.ReskinFilterReset(overlayFrames[2].ResetButton)
 
 	local sideToggle = WorldMapFrame.SidePanelToggle
 	sideToggle:SetFrameLevel(3)
@@ -23,5 +23,12 @@ tinsert(C.defaultThemes, function()
 	sideToggle.CloseButton:GetRegions():Hide()
 	B.ReskinArrow(sideToggle.CloseButton, "left")
 
-	B.ReskinNavBar(WorldMapFrame.NavBar)
+	for i = 1, #overlayFrames do
+		local frame = overlayFrames[i]
+		local dropdown = frame.BountyDropdown
+		if dropdown then
+			B.ReskinArrow(dropdown, "right")
+			break
+		end
+	end
 end)

@@ -12,7 +12,7 @@ local function reskinScrollChild(self)
 		local child = select(i, self.ScrollTarget:GetChildren())
 		local hideButton = child and child.HideButton
 		if hideButton and not hideButton.styled then
-			B.ReskinClose(hideButton)
+			B.ReskinClose(hideButton, nil, nil, nil, true)
 			hideButton:ClearAllPoints()
 			hideButton:SetPoint("LEFT", 3, 0)
 
@@ -39,10 +39,14 @@ local function ReskinEventTraceFrame(frame)
 end
 
 C.themes["Blizzard_EventTrace"] = function()
+	if AuroraClassicDB.Tooltips then
+		B.ReskinTooltip(EventTraceTooltip, true)
+	end
+
 	B.ReskinPortraitFrame(EventTrace)
 
 	local subtitleBar = EventTrace.SubtitleBar
-	B.ReskinFilterButton(subtitleBar.OptionsDropDown)
+	B.ReskinFilterButton(subtitleBar.OptionsDropdown)
 
 	local logBar = EventTrace.Log.Bar
 	local filterBar = EventTrace.Filter.Bar

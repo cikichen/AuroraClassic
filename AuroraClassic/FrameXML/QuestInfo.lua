@@ -17,44 +17,14 @@ local function setHighlight(self)
 	end
 end
 
-local function QuestInfo_GetQuestID()
-	if QuestInfoFrame.questLog then
-		return C_QuestLog.GetSelectedQuest()
-	else
-		return GetQuestID()
-	end
-end
+local defaultColor = GetMaterialTextColors("Default")
+local completedColor = QUEST_OBJECTIVE_COMPLETED_FONT_COLOR:GetRGB()
 
-local function colorObjectivesText()
-	if not QuestInfoFrame.questLog then return end
-
-	local questID = QuestInfo_GetQuestID()
-	local objectivesTable = QuestInfoObjectivesFrame.Objectives
-	local numVisibleObjectives = 0
-	local objective
-
-	local waypointText = C_QuestLog.GetNextWaypointText(questID);
-	if waypointText then
-		numVisibleObjectives = numVisibleObjectives + 1;
-		objective = objectivesTable[numVisibleObjectives]
-		objective:SetTextColor(1, 1, 1)
-	end
-
-	for i = 1, GetNumQuestLeaderBoards() do
-		local _, type, finished = GetQuestLogLeaderBoard(i)
-
-		if (type ~= "spell" and type ~= "log" and numVisibleObjectives < MAX_OBJECTIVES) then
-			numVisibleObjectives = numVisibleObjectives + 1
-			objective = objectivesTable[numVisibleObjectives]
-
-			if objective then
-				if finished then
-					objective:SetTextColor(.9, .9, .9)
-				else
-					objective:SetTextColor(1, 1, 1)
-				end
-			end
-		end
+local function ReplaceTextColor(object, r)
+	if r == 0 or r == defaultColor[1] then
+		object:SetTextColor(1, 1, 1)
+	elseif r == completedColor then
+		object:SetTextColor(.7, .7, .7)
 	end
 end
 
@@ -124,19 +94,16 @@ tinsert(C.defaultThemes, function()
 	QuestInfoItemHighlight:HookScript("OnShow", setHighlight)
 	QuestInfoItemHighlight:HookScript("OnHide", clearHighlight)
 
-	-- Quest objective text color
-	hooksecurefunc("QuestMapFrame_ShowQuestDetails", colorObjectivesText)
-
 	-- Reskin rewards
-	restyleSpellButton(QuestInfoSpellObjectiveFrame) -- needs review
+	restyleSpellButton(QuestInfoSpellObjectiveFrame)
 
 	hooksecurefunc("QuestInfo_GetRewardButton", function(rewardsFrame, index)
 		local bu = rewardsFrame.RewardButtons[index]
-		if not bu.restyled then
+		if not bu.styled then
 			ReskinRewardButtonWithSize(bu, rewardsFrame == MapQuestInfoRewardsFrame)
 			B.ReskinIconBorder(bu.IconBorder)
 
-			bu.restyled = true
+			bu.styled = true
 		end
 	end)
 
@@ -149,7 +116,7 @@ tinsert(C.defaultThemes, function()
 		ReskinRewardButtonWithSize(QuestInfoRewardsFrame[name])
 	end
 
-	-- Title Reward, needs review
+	-- Title Reward
 	do
 		local frame = QuestInfoPlayerTitleFrame
 		local icon = frame.Icon
@@ -165,13 +132,22 @@ tinsert(C.defaultThemes, function()
 
 	-- Others
 	hooksecurefunc("QuestInfo_Display", function()
-		colorObjectivesText()
+		local objectivesTable = QuestInfoObjectivesFrame.Objectives
+		for i = #objectivesTable, 1, -1 do
+			local object = objectivesTable[i]
+			if object.hooked then break end
+			object:SetTextColor(1, 1, 1)
+			hooksecurefunc(object, "SetTextColor", ReplaceTextColor)
+
+			object.hooked = true
+		end
 
 		local rewardsFrame = QuestInfoFrame.rewardsFrame
 		local isQuestLog = QuestInfoFrame.questLog ~= nil
-		local numSpellRewards = isQuestLog and GetNumQuestLogRewardSpells() or GetNumRewardSpells()
+		local questID = isQuestLog and C_QuestLog.GetSelectedQuest() or GetQuestID()
+		local spellRewards = C_QuestInfoSystem.GetQuestRewardSpells(questID) or {}
 
-		if numSpellRewards > 0 then
+		if #spellRewards > 0 then
 			-- Spell Headers
 			for spellHeader in rewardsFrame.spellHeaderPool:EnumerateActive() do
 				spellHeader:SetVertexColor(1, 1, 1)
@@ -209,22 +185,33 @@ tinsert(C.defaultThemes, function()
 				end
 			end
 		end
+
+		-- Reputation Rewards
+		for repReward in rewardsFrame.reputationRewardPool:EnumerateActive() do
+			if not repReward.styled then
+				ReskinRewardButton(repReward)
+
+				repReward.styled = true
+			end
+		end
+	end)
+
+	hooksecurefunc(QuestInfoQuestType, "SetTextColor", function(text, r, g, b)
+		if not (r == 1 and g == 1 and b == 1) then
+			text:SetTextColor(1, 1, 1)
+		end
 	end)
 
 	-- Change text colors
-	hooksecurefunc(QuestInfoRequiredMoneyText, "SetTextColor", function(self, r)
-		if r == 0 then
-			self:SetTextColor(.8, .8, .8)
-		elseif r == .2 then
-			self:SetTextColor(1, 1, 1)
-		end
-	end)
+	hooksecurefunc(QuestInfoRequiredMoneyText, "SetTextColor", ReplaceTextColor)
+	hooksecurefunc(QuestInfoSpellObjectiveLearnLabel, "SetTextColor", ReplaceTextColor)
 
 	local yellowish = {
 		QuestInfoTitleHeader,
 		QuestInfoDescriptionHeader,
 		QuestInfoObjectivesHeader,
 		QuestInfoRewardsFrame.Header,
+		QuestInfoAccountCompletedNotice,
 	}
 	for _, font in pairs(yellowish) do
 		SetTextColor_Yellow(font)
@@ -235,7 +222,7 @@ tinsert(C.defaultThemes, function()
 		QuestInfoObjectivesText,
 		QuestInfoGroupSize,
 		QuestInfoRewardText,
-		QuestInfoSpellObjectiveLearnLabel,
+		QuestInfoTimerText,
 		QuestInfoRewardsFrame.ItemChooseText,
 		QuestInfoRewardsFrame.ItemReceiveText,
 		QuestInfoRewardsFrame.PlayerTitleText,

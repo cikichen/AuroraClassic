@@ -11,7 +11,7 @@ tinsert(C.defaultThemes, function()
 	ItemTextMaterialBotRight:SetAlpha(0)
 
 	B.ReskinPortraitFrame(ItemTextFrame)
-	B.ReskinScroll(ItemTextScrollFrameScrollBar)
+	B.ReskinTrimScroll(ItemTextScrollFrame.ScrollBar)
 	B.ReskinArrow(ItemTextPrevPageButton, "left")
 	B.ReskinArrow(ItemTextNextPageButton, "right")
 	ItemTextFramePageBg:SetAlpha(0)

@@ -52,22 +52,22 @@ function B:LoadSkins(event, addon)
 			end
 
 			for _, func in pairs(C.defaultThemes) do
-				func()
+				xpcall(func, geterrorhandler())
 			end
 			wipe(C.defaultThemes)
 
 			for addonName, func in pairs(C.themes) do
-				local isLoaded, isFinished = IsAddOnLoaded(addonName)
+				local isLoaded, isFinished = C_AddOns.IsAddOnLoaded(addonName)
 				if isLoaded and isFinished then
-					func()
+					xpcall(func, geterrorhandler())
 					C.themes[addonName] = nil
 				end
 			end
 		else
 			local func = C.themes[addon]
 			if func then
-				func()
-				C.themes[addonName] = nil
+				xpcall(func, geterrorhandler())
+				C.themes[addon] = nil
 			end
 		end
 	end

@@ -9,6 +9,27 @@ local function ReskinFont(font, size)
 	font:SetShadowColor(0, 0, 0, 0)
 end
 
+local function ReskinRaidWarningFont(font)
+	if font.__auroraFontStyled then return end
+
+	local size = select(2, font:GetFont())
+	B.SetFontSize(font, size)
+	font:SetTextScale(AuroraClassicDB.FontScale)
+	font:SetShadowColor(0, 0, 0, 0)
+	font.__auroraFontStyled = true
+end
+
+local function ReskinRaidWarningFonts(frame)
+	for font in frame.fontStringPool:EnumerateActive() do
+		ReskinRaidWarningFont(font)
+	end
+end
+
+local function SetupRaidWarningFonts(frame)
+	ReskinRaidWarningFonts(frame)
+	hooksecurefunc(frame, "AcquireString", ReskinRaidWarningFonts)
+end
+
 tinsert(C.defaultThemes, function()
 	-- Text color
 	GameFontBlack:SetTextColor(1, 1, 1)
@@ -16,11 +37,14 @@ tinsert(C.defaultThemes, function()
 	CoreAbilityFont:SetTextColor(1, 1, 1)
 
 	if not AuroraClassicDB.FontOutline then return end
+	if AuroraClassicDB.Tooltips then
+		ReskinFont(GameTooltipHeaderText)
+		ReskinFont(GameTooltipText)
+		ReskinFont(GameTooltipTextSmall)
+	end
 
-	ReskinFont(RaidWarningFrame.slot1)
-	ReskinFont(RaidWarningFrame.slot2)
-	ReskinFont(RaidBossEmoteFrame.slot1)
-	ReskinFont(RaidBossEmoteFrame.slot2)
+	SetupRaidWarningFonts(RaidWarningFrame)
+	SetupRaidWarningFonts(CinematicFrame.BossEmoteFrame)
 	ReskinFont(AchievementFont_Small)
 	ReskinFont(AchievementCriteriaFont)
 	ReskinFont(AchievementDescriptionFont)
@@ -33,7 +57,7 @@ tinsert(C.defaultThemes, function()
 	ReskinFont(FriendsFont_Large)
 	ReskinFont(FriendsFont_UserText)
 	ReskinFont(FriendsFont_11)
-	ReskinFont(GameFont_Gigantic)
+	ReskinFont(GameFont_Gigantic, 32)
 	ReskinFont(InvoiceFont_Small)
 	ReskinFont(InvoiceFont_Med)
 	ReskinFont(MailFont_Large)
@@ -104,6 +128,7 @@ tinsert(C.defaultThemes, function()
 	ReskinFont(Game13Font)
 	ReskinFont(Game13FontShadow)
 	ReskinFont(Game15Font)
+	ReskinFont(Game15Font_Shadow)
 	ReskinFont(Game16Font)
 	ReskinFont(Game18Font)
 	ReskinFont(Game20Font)
@@ -140,23 +165,16 @@ tinsert(C.defaultThemes, function()
 	ReskinFont(PriceFontGray)
 	ReskinFont(PriceFontGreen)
 	ReskinFont(PriceFontRed)
-
-	-- Refont RaidFrame Health
-	hooksecurefunc("CompactUnitFrame_UpdateStatusText", function(frame)
-		if frame:IsForbidden() then return end
-		if not frame.statusText then return end
-
-		local options = DefaultCompactMiniFrameSetUpOptions
-		frame.statusText:ClearAllPoints()
-		frame.statusText:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 3, options.height/3 - 5)
-		frame.statusText:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -3, options.height/3 - 5)
-
-		if not frame.fontStyled then
-			local fontName, fontSize = frame.statusText:GetFont()
-			frame.statusText:SetFont(fontName, fontSize, "OUTLINE")
-			frame.statusText:SetTextColor(.7, .7, .7)
-			frame.statusText:SetShadowColor(0, 0, 0, 0)
-			frame.fontStyled = true
+	-- add in 11.2
+	ReskinFont(UserScaledFontGameNormal)
+	ReskinFont(UserScaledFontGameHighlight)
+	ReskinFont(UserScaledFontGameNormalSmall)
+	ReskinFont(UserScaledFontGameHighlightSmall)
+	-- new font family in 11.0.2
+	for i = 12, 22 do
+		local font = _G["ObjectiveTrackerFont"..i]
+		if font then
+			ReskinFont(font)
 		end
-	end)
+	end
 end)

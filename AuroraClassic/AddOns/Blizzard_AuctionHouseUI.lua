@@ -30,7 +30,7 @@ local function reskinSellPanel(frame)
 		B.ReskinInput(frame.SecondaryPriceInput.MoneyInputFrame.GoldBox)
 		B.ReskinInput(frame.SecondaryPriceInput.MoneyInputFrame.SilverBox)
 	end
-	B.ReskinDropDown(frame.DurationDropDown.DropDown)
+	B.ReskinDropDown(frame.Duration.Dropdown)
 	B.Reskin(frame.PostButton)
 	if frame.BuyoutModeCheckButton then
 		B.ReskinCheck(frame.BuyoutModeCheckButton)
@@ -157,8 +157,6 @@ C.themes["Blizzard_AuctionHouseUI"] = function()
 	local filterButton = searchBar.FilterButton
 	B.ReskinFilterButton(filterButton)
 	B.ReskinFilterReset(filterButton.ClearFiltersButton)
-	B.ReskinInput(filterButton.LevelRangeFrame.MinLevel)
-	B.ReskinInput(filterButton.LevelRangeFrame.MaxLevel)
 
 	B.StripTextures(AuctionHouseFrame.CategoriesList)
 	B.ReskinTrimScroll(AuctionHouseFrame.CategoriesList.ScrollBar)
@@ -174,10 +172,12 @@ C.themes["Blizzard_AuctionHouseUI"] = function()
 	B.Reskin(itemBuyFrame.BackButton)
 	B.Reskin(itemBuyFrame.BidFrame.BidButton)
 	B.Reskin(itemBuyFrame.BuyoutFrame.BuyoutButton)
-	B.ReskinInput(AuctionHouseFrameGold)
-	B.ReskinInput(AuctionHouseFrameSilver)
 	reskinItemDisplay(itemBuyFrame.ItemDisplay)
 	reskinItemList(itemBuyFrame.ItemList, true)
+	if BidAmountGold then
+		B.ReskinInput(BidAmountGold)
+		B.ReskinInput(BidAmountSilver)
+	end
 
 	local commBuyFrame = AuctionHouseFrame.CommoditiesBuyFrame
 	B.Reskin(commBuyFrame.BackButton)
@@ -224,8 +224,6 @@ C.themes["Blizzard_AuctionHouseUI"] = function()
 
 	B.ReskinTab(AuctionHouseFrameAuctionsFrameAuctionsTab)
 	B.ReskinTab(AuctionHouseFrameAuctionsFrameBidsTab)
-	B.ReskinInput(AuctionHouseFrameAuctionsFrameGold)
-	B.ReskinInput(AuctionHouseFrameAuctionsFrameSilver)
 	B.Reskin(AuctionHouseFrameAuctionsFrame.CancelAuctionButton)
 	B.Reskin(AuctionHouseFrameAuctionsFrame.BidFrame.BidButton)
 	B.Reskin(AuctionHouseFrameAuctionsFrame.BuyoutFrame.BuyoutButton)
@@ -233,6 +231,7 @@ C.themes["Blizzard_AuctionHouseUI"] = function()
 	local buyDialog = AuctionHouseFrame.BuyDialog
 	B.StripTextures(buyDialog)
 	B.SetBD(buyDialog)
+	B.Reskin(buyDialog.OkayButton)
 	B.Reskin(buyDialog.BuyNowButton)
 	B.Reskin(buyDialog.CancelButton)
 

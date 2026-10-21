@@ -35,24 +35,21 @@ C.themes["Blizzard_AchievementUI"] = function()
 		end
 	end
 
-	B.ReskinDropDown(AchievementFrameFilterDropDown)
-	AchievementFrameFilterDropDown:ClearAllPoints()
-	AchievementFrameFilterDropDown:SetPoint("TOPRIGHT", -120, 0)
-	AchievementFrameFilterDropDownText:ClearAllPoints()
-	AchievementFrameFilterDropDownText:SetPoint("CENTER", -10, 1)
+	local headerDetails = AchievementFrame.HeaderDetails
+	B.StripTextures(headerDetails)
+	B.Reskin(headerDetails.Back)
+
+	local filters = headerDetails.Filters
+	B.ReskinFilterButton(filters.FilterDropdown)
 	B.ReskinClose(AchievementFrameCloseButton)
 
 	-- Search box
-	B.ReskinInput(AchievementFrame.SearchBox)
-	AchievementFrame.SearchBox:ClearAllPoints()
-	AchievementFrame.SearchBox:SetPoint("TOPRIGHT", AchievementFrame, "TOPRIGHT", -25, -5)
-	AchievementFrame.SearchBox:SetPoint("BOTTOMLEFT", AchievementFrame, "TOPRIGHT", -130, -25)
+	local searchBox = filters.SearchBox
+	B.ReskinInput(searchBox)
 
-	local previewContainer = AchievementFrame.SearchPreviewContainer
+	local previewContainer = searchBox.SearchPreviewContainer
 	local showAllSearchResults = previewContainer.ShowAllSearchResults
 	B.StripTextures(previewContainer)
-	previewContainer:ClearAllPoints()
-	previewContainer:SetPoint("TOPLEFT", AchievementFrame, "TOPRIGHT", 7, -2)
 	local bg = B.SetBD(previewContainer)
 	bg:SetPoint("TOPLEFT", -3, 3)
 	bg:SetPoint("BOTTOMRIGHT", showAllSearchResults, 3, -3)
